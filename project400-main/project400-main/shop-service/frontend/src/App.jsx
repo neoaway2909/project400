@@ -3,6 +3,7 @@ import Dashboard      from './components/Dashboard';
 import ReceiveStock   from './components/ReceiveStock';
 import ImeiSearch     from './components/ImeiSearch';
 import AvailableStock from './components/AvailableStock';
+import Checkout from './pages/Checkout';
 
 const NAV = [
   {
@@ -24,6 +25,7 @@ const NAV = [
       { id: 'imei-search', label: 'ค้นหา IMEI',    icon: '🔍' },
     ],
   },
+  { section: 'ขายหน้าร้าน', items: [ { id: 'checkout', label: 'POS Checkout', icon: '🛒' } ] },
 ];
 
 const PAGE_TITLES = {
@@ -31,6 +33,7 @@ const PAGE_TITLES = {
   receive:     { title: 'รับเครื่องเข้าคลัง',     sub: 'สแกน IMEI เพื่อเพิ่มสต็อก' },
   available:   { title: 'สินค้าพร้อมขาย',         sub: 'โทรศัพท์สถานะ IN_STOCK' },
   'imei-search': { title: 'ค้นหาประวัติ IMEI',  sub: 'ตรวจสอบสถานะและประวัติเครื่อง' },
+  checkout:    { title: 'POS Checkout',        sub: 'ขายหน้าร้านและออกใบรับประกัน' },
 };
 
 function renderPage(page) {
@@ -39,6 +42,7 @@ function renderPage(page) {
     case 'receive':     return <ReceiveStock />;
     case 'available':   return <AvailableStock />;
     case 'imei-search': return <ImeiSearch />;
+    case 'checkout':    return <Checkout />;
     default:            return <Dashboard />;
   }
 }
