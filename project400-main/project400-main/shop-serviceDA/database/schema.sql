@@ -159,3 +159,62 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_imei_status_log
     AFTER UPDATE ON device_imeis
     FOR EACH ROW EXECUTE FUNCTION log_imei_status_change();
+
+-- ============================================================
+-- POS MODULE TABLES
+-- ============================================================
+
+-- customers table
+CREATE TABLE IF NOT EXISTS customers (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    full_name     VARCHAR(100) NOT NULL,
+    phone_number  VARCHAR(20) NOT NULL,
+    email         VARCHAR(100),
+    id_card_no    VARCHAR(20),
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_customers_phone ON customers(phone_number);
+
+-- orders table
+CREATE TABLE IF NOT EXISTS orders (
+    order_id        VARCHAR(30) PRIMARY KEY, -- e.g. ORD-20261024-001
+    customer_id     UUID REFERENCES customers(id),
+    total_amount    NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
+    payment_method  VARCHAR(20) NOT NULL CHECK (payment_method IN ('CASH','CREDIT_CARD','QR_PROMPT_PAY')),
+    payment_status  VARCHAR(20) NOT NULL CHECK (payment_status IN ('PAID','PENDING','FAILED')),
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+
+-- order_items table
+CREATE TABLE IF NOT EXISTS order_items (
+    order_id        VARCHAR(30) REFERENCES orders(order_id) ON DELETE CASCADE,
+    line_no         INT NOT NULL,
+    model_name      VARCHAR(100) NOT NULL,
+    imei            VARCHAR(15) NOT NULL,
+    price           NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+    package_code    VARCHAR(30),
+    package_price   NUMERIC(12,2),
+    PRIMARY KEY (order_id, line_no)
+);
+
+CREATE INDEX idx_order_items_imei ON order_items(imei);
+
+-- warranty_logs table
+CREATE TABLE IF NOT EXISTS warranty_logs (
+    log_id          SERIAL PRIMARY KEY,
+    order_id        VARCHAR(30) REFERENCES orders(order_id) ON DELETE CASCADE,
+    imei            VARCHAR(15) NOT NULL,
+    policy_no       VARCHAR(30),
+    sync_status     VARCHAR(20) NOT NULL CHECK (sync_status IN ('SUCCESS','FAILED','RETRY_PENDING')),
+    response_payload JSONB,
+    synced_at       TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_warranty_logs_policy ON warranty_logs(policy_no);
+
+-- End of schema
