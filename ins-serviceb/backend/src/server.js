@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const policyController = require('./controllers/policyController');
+const repairRoutes = require('./routes/repairs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,7 +16,7 @@ const PORT = process.env.PORT || 3001;
 // ============================================================
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:3001'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));
@@ -78,6 +79,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/v1/policies', apiKeyAuth, policyController);
+app.use('/api/v1/repairs', apiKeyAuth, repairRoutes);
 
 // 404 Handler
 app.use((req, res) => {

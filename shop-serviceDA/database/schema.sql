@@ -116,6 +116,24 @@ CREATE TABLE IF NOT EXISTS imei_status_logs (
 CREATE INDEX idx_imei_status_logs_imei ON imei_status_logs(imei);
 
 -- ============================================================
+-- TABLE: repair_webhook_events (POS repair status notifications)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS repair_webhook_events (
+    event_id            UUID PRIMARY KEY,
+    event_type          VARCHAR(30) NOT NULL CHECK (event_type IN ('REPAIR_COMPLETED', 'DELIVERED')),
+    ticket_id           VARCHAR(30) NOT NULL,
+    policy_no           VARCHAR(30) NOT NULL,
+    imei                VARCHAR(15) NOT NULL CHECK (imei ~ '^[0-9]{15}$'),
+    center_name         VARCHAR(200),
+    status_updated_at   TIMESTAMPTZ NOT NULL,
+    details             JSONB NOT NULL DEFAULT '{}'::JSONB,
+    received_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_repair_webhook_events_ticket
+    ON repair_webhook_events(ticket_id, status_updated_at DESC);
+
+-- ============================================================
 -- TRIGGER: auto-update updated_at columns
 -- ============================================================
 CREATE OR REPLACE FUNCTION set_updated_at()

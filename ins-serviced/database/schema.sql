@@ -25,6 +25,15 @@ CREATE TYPE repair_event_enum AS ENUM (
   'REPAIR_COMPLETED',
   'DEVICE_DELIVERED'
 );
+CREATE TYPE repair_status_enum AS ENUM (
+  'RECEIVED',
+  'DIAGNOSING',
+  'WAITING_PARTS',
+  'IN_PROGRESS',
+  'REPAIR_COMPLETED',
+  'DELIVERED',
+  'CANCELLED'
+);
 
 -- ============================================================
 -- TABLE: insurance_packages
@@ -106,22 +115,40 @@ COMMENT ON COLUMN policies.imei IS 'เลขอีมี่ 15 หลัก (In
 COMMENT ON COLUMN policies.remaining_claim_amount IS 'วงเงินเคลมคงเหลือ';
 
 -- ============================================================
--- TABLE: repair_tickets
+-- TABLES: Repair Center Operations
 -- ============================================================
-CREATE TABLE repair_tickets (
+CREATE TABLE repair_centers (
   id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
-  ticket_id       VARCHAR(30)   UNIQUE NOT NULL,            -- e.g. REP-2026-1004
-  policy_no       VARCHAR(30)   NOT NULL REFERENCES policies(policy_no),
-  imei            VARCHAR(15)   NOT NULL,
-  center_id       VARCHAR(50)   NOT NULL,
-  center_name     VARCHAR(200),
-  technician_id   VARCHAR(50),
+  center_code     VARCHAR(50)   UNIQUE NOT NULL,
+  name            VARCHAR(200)  NOT NULL,
+  location        TEXT          NOT NULL,
+  phone           VARCHAR(20)   NOT NULL,
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE technicians (
+  id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  center_id       UUID          NOT NULL REFERENCES repair_centers(id),
+  full_name       VARCHAR(200)  NOT NULL,
+  email           VARCHAR(200)  UNIQUE NOT NULL,
+  phone           VARCHAR(20)   NOT NULL,
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE repair_tickets (
+  ticket_id       VARCHAR(30)   PRIMARY KEY,                 -- e.g. REP-2026-1004
+  policy_no       VARCHAR(30)   NOT NULL,                    -- External policy reference
+  imei            VARCHAR(15)   NOT NULL CHECK (imei ~ '^[0-9]{15}$'),
+  center_id       UUID          NOT NULL REFERENCES repair_centers(id),
+  technician_id   UUID          REFERENCES technicians(id),
   defect_symptom  TEXT          NOT NULL,
-  estimated_cost  NUMERIC(12,2),
-  cost_covered    NUMERIC(12,2) DEFAULT 0,                  -- ค่าซ่อมที่บริษัทประกันจ่าย
-  customer_excess NUMERIC(12,2) DEFAULT 0,                  -- ส่วนที่ลูกค้าจ่ายเอง
-  photos          JSONB,                                    -- รายการ URL รูปถ่าย
-  current_status  repair_event_enum NOT NULL DEFAULT 'REPAIR_RECEIVED',
+  repair_status   repair_status_enum NOT NULL DEFAULT 'RECEIVED',
+  estimated_cost  NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (estimated_cost >= 0),
+  actual_cost     NUMERIC(12,2) CHECK (actual_cost >= 0),
+  coverage_limit_at_intake NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (coverage_limit_at_intake >= 0),
+  fixed_excess_at_intake NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (fixed_excess_at_intake >= 0),
+  cost_covered_by_insurance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cost_covered_by_insurance >= 0),
+  customer_excess_paid NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (customer_excess_paid >= 0),
   repair_summary  TEXT,
   created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   completed_at    TIMESTAMPTZ,
@@ -130,6 +157,32 @@ CREATE TABLE repair_tickets (
 
 CREATE INDEX idx_repair_tickets_policy ON repair_tickets(policy_no);
 CREATE INDEX idx_repair_tickets_imei ON repair_tickets(imei);
+CREATE INDEX idx_repair_tickets_status ON repair_tickets(repair_status);
+
+CREATE TABLE spare_parts (
+  id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  part_code       VARCHAR(50)   UNIQUE NOT NULL,
+  part_name       VARCHAR(200)  NOT NULL,
+  unit_price      NUMERIC(12,2) NOT NULL CHECK (unit_price >= 0),
+  stock_qty       INT           NOT NULL DEFAULT 0 CHECK (stock_qty >= 0),
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE ticket_parts (
+  ticket_id       VARCHAR(30)   NOT NULL REFERENCES repair_tickets(ticket_id) ON DELETE CASCADE,
+  part_id         UUID          NOT NULL REFERENCES spare_parts(id),
+  quantity        INT           NOT NULL CHECK (quantity > 0),
+  unit_price      NUMERIC(12,2) NOT NULL CHECK (unit_price >= 0),
+  PRIMARY KEY (ticket_id, part_id)
+);
+
+CREATE TABLE repair_photos (
+  id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ticket_id       VARCHAR(30)   NOT NULL REFERENCES repair_tickets(ticket_id) ON DELETE CASCADE,
+  photo_url       VARCHAR(1000) NOT NULL,
+  photo_type      VARCHAR(20)   NOT NULL CHECK (photo_type IN ('BEFORE', 'AFTER', 'DAMAGED_PART')),
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
 
 -- ============================================================
 -- TABLE: repair_status_logs
@@ -138,10 +191,41 @@ CREATE TABLE repair_status_logs (
   id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
   ticket_id       VARCHAR(30)   NOT NULL REFERENCES repair_tickets(ticket_id),
   event_id        VARCHAR(100)  NOT NULL,
-  event_type      repair_event_enum NOT NULL,
+  event_type      repair_status_enum NOT NULL,
   details         JSONB,
   status_updated_at TIMESTAMPTZ NOT NULL,
   created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE webhook_logs (
+  id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ticket_id       VARCHAR(30)   NOT NULL REFERENCES repair_tickets(ticket_id),
+  event_type      repair_status_enum NOT NULL,
+  target_url      VARCHAR(1000) NOT NULL,
+  payload         JSONB         NOT NULL,
+  response_status INT,
+  error_message   TEXT,
+  sent_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE SEQUENCE repair_ticket_seq START WITH 1001 INCREMENT BY 1;
+
+INSERT INTO repair_centers (id, center_code, name, location, phone)
+VALUES (
+  '00000000-0000-4000-8000-000000000001',
+  'CTR-SIAM-01',
+  'ศูนย์ซ่อม สยามสแควร์',
+  'สยามสแควร์ กรุงเทพฯ',
+  '021234567'
+);
+
+INSERT INTO technicians (id, center_id, full_name, email, phone)
+VALUES (
+  '00000000-0000-4000-8000-000000000002',
+  '00000000-0000-4000-8000-000000000001',
+  'ช่างประจำศูนย์',
+  'technician@repair-center.local',
+  '0812345678'
 );
 
 -- ============================================================

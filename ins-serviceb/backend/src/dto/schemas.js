@@ -32,34 +32,46 @@ const createPolicySchema = Joi.object({
 // DTO: CreateRepairTicketRequest
 // ============================================================
 const createRepairTicketSchema = Joi.object({
-  policy_no: Joi.string().required(),
+  policy_no: Joi.string().optional(),
   imei: Joi.string().pattern(/^[0-9]{15}$/).required(),
-  center_id: Joi.string().required(),
-  technician_id: Joi.string().optional(),
-  defect_symptom: Joi.string().required(),
-  estimated_cost: Joi.number().min(0).optional(),
-  photos: Joi.array().items(Joi.string().uri()).optional()
+  center_id: Joi.string().guid().required(),
+  technician_id: Joi.string().guid().optional(),
+  coverage_type: Joi.string().valid('SCREEN_CRACK', 'WATER_DAMAGE', 'ACCIDENTAL', 'FULL_COVERAGE', 'THEFT').optional(),
+  defect_symptom: Joi.string().trim().min(1).required(),
+  estimated_cost: Joi.number().min(0).required(),
+  photos: Joi.array().items(Joi.object({
+    photo_url: Joi.string().uri().required(),
+    photo_type: Joi.string().valid('BEFORE', 'AFTER', 'DAMAGED_PART').required()
+  })).optional()
+});
+
+const updateRepairStatusSchema = Joi.object({
+  status: Joi.string().valid(
+    'RECEIVED', 'DIAGNOSING', 'WAITING_PARTS', 'IN_PROGRESS',
+    'REPAIR_COMPLETED', 'DELIVERED', 'CANCELLED'
+  ).required(),
+  actual_cost: Joi.number().min(0).optional(),
+  repair_summary: Joi.string().trim().allow('').optional()
 });
 
 // ============================================================
 // DTO: RepairStatusWebhookPayload
 // ============================================================
 const repairWebhookSchema = Joi.object({
-  event_id: Joi.string().required(),
-  event_type: Joi.string().valid(
-    'REPAIR_RECEIVED', 'REPAIR_IN_PROGRESS',
-    'WAITING_SPARE_PARTS', 'REPAIR_COMPLETED', 'DEVICE_DELIVERED'
-  ).required(),
+  event_id: Joi.string().guid().required(),
+  event_type: Joi.string().valid('REPAIR_COMPLETED', 'DELIVERED').required(),
   ticket_id: Joi.string().required(),
   policy_no: Joi.string().required(),
-  imei: Joi.string().required(),
-  center_name: Joi.string().optional(),
+  imei: Joi.string().pattern(/^[0-9]{15}$/).required(),
+  center_name: Joi.string().required(),
   status_updated_at: Joi.string().isoDate().required(),
   details: Joi.object({
     repair_summary: Joi.string().optional(),
-    cost_covered_by_insurance: Joi.number().optional(),
-    customer_excess_paid: Joi.number().optional()
-  }).optional()
+    estimated_cost: Joi.number().min(0).optional(),
+    actual_cost: Joi.number().min(0).allow(null).optional(),
+    cost_covered_by_insurance: Joi.number().min(0).optional(),
+    customer_excess_paid: Joi.number().min(0).optional()
+  }).required()
 });
 
 // ============================================================
@@ -78,6 +90,7 @@ const updatePackageSchema = Joi.object({
 module.exports = {
   createPolicySchema,
   createRepairTicketSchema,
+  updateRepairStatusSchema,
   repairWebhookSchema,
   updatePackageSchema
 };
