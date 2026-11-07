@@ -32,22 +32,22 @@ export default function RepairTracker({ device }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Active Ticket Header Card */}
-      <div className="glass-section" style={{ borderLeft: '4px solid var(--accent-cyan)' }}>
+      <div className="glass-section" style={{ borderLeft: '4px solid #f59e0b' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>หมายเลขตั๋วงานซ่อม</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--accent-cyan)' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#b45309' }}>
               {repair.ticket_id}
             </div>
           </div>
           <span style={{
             padding: '4px 10px',
-            background: 'rgba(0, 240, 255, 0.15)',
-            border: '1px solid var(--accent-cyan)',
+            background: '#fef3c7',
+            border: '1px solid #fde68a',
             borderRadius: '20px',
             fontSize: '0.75rem',
             fontWeight: '700',
-            color: 'var(--accent-cyan)'
+            color: '#92400e'
           }}>
             ⚡ กำลังซ่อมแซม
           </span>
@@ -61,14 +61,15 @@ export default function RepairTracker({ device }) {
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: '10px',
-          background: 'rgba(255, 255, 255, 0.03)',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
           padding: '12px',
           borderRadius: 'var(--radius-sm)',
           fontSize: '0.82rem'
         }}>
           <div>
             <span style={{ color: 'var(--text-subtle)', display: 'block' }}>ประมาณการเสร็จ</span>
-            <strong style={{ color: '#fff' }}>{repair.estimated_pickup}</strong>
+            <strong style={{ color: '#0f172a' }}>{repair.estimated_pickup}</strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-subtle)', display: 'block' }}>ค่าใช้จ่ายที่ต้องชำระ</span>
@@ -100,7 +101,7 @@ export default function RepairTracker({ device }) {
                   {isCompleted ? '✓' : idx + 1}
                 </div>
                 <div className="step-header">
-                  <div className="step-title" style={{ color: isActive ? 'var(--accent-cyan)' : undefined }}>
+                  <div className="step-title" style={{ color: isActive ? '#b45309' : undefined }}>
                     {step.title}
                   </div>
                   <div className="step-time">{step.time}</div>
@@ -117,14 +118,14 @@ export default function RepairTracker({ device }) {
           <span>📍</span>
           <span>ข้อมูลศูนย์บริการที่ดูแลเครื่องของคุณ</span>
         </div>
-        <div style={{ fontSize: '0.92rem', fontWeight: '700', marginBottom: '4px' }}>
+        <div style={{ fontSize: '0.92rem', fontWeight: '700', marginBottom: '4px', color: '#0f172a' }}>
           {repair.center_name}
         </div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
           {repair.center_address}
         </div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-          👨‍🔧 ผู้รับผิดชอบ: <strong>{repair.technician_name}</strong>
+          👨‍🔧 ผู้รับผิดชอบ: <strong style={{ color: '#0f172a' }}>{repair.technician_name}</strong>
         </div>
 
         <a 
@@ -134,14 +135,15 @@ export default function RepairTracker({ device }) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            background: 'rgba(59, 130, 246, 0.15)',
-            border: '1px solid var(--accent-blue)',
-            color: 'var(--accent-cyan)',
-            padding: '10px',
+            background: '#fef3c7',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            padding: '11px',
             borderRadius: 'var(--radius-sm)',
             textDecoration: 'none',
-            fontWeight: '600',
-            fontSize: '0.88rem'
+            fontWeight: '700',
+            fontSize: '0.88rem',
+            boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)'
           }}
         >
           <span>📞</span>

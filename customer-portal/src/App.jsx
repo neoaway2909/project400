@@ -98,13 +98,13 @@ export default function App() {
             <div style={{
               width: 40,
               height: 40,
-              border: '3px solid rgba(0, 240, 255, 0.2)',
-              borderTopColor: 'var(--accent-cyan)',
+              border: '3px solid rgba(245, 158, 11, 0.2)',
+              borderTopColor: 'var(--accent-amber)',
               borderRadius: '50%',
               margin: '0 auto 16px',
               animation: 'spin 0.8s linear infinite'
             }}></div>
-            <div style={{ fontSize: '0.9rem' }}>กำลังตรวจสอบสถานะกับเซิร์ฟเวอร์ประกัน...</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>กำลังตรวจสอบสถานะกับเซิร์ฟเวอร์ประกัน...</div>
             <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (

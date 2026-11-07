@@ -95,7 +95,7 @@ export function LoadingBox({ text = 'กำลังโหลดข้อมู�
       <div style={{
         width: 36,
         height: 36,
-        border: '3px solid rgba(255, 255, 255, .1)',
+        border: '3px solid #fef08a',
         borderTopColor: 'var(--clr-primary-500)',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite'

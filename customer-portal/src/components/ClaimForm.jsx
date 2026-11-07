@@ -28,7 +28,7 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
           บันทึกการแจ้งเคลมล่วงหน้าสำเร็จ!
         </div>
         <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          รหัสคิวแจ้งซ่อม: <strong style={{ color: 'var(--accent-cyan)' }}>CLM-2026-9812</strong><br />
+          รหัสคิวแจ้งซ่อม: <strong style={{ color: '#b45309' }}>CLM-2026-9812</strong><br />
           คุณสามารถนำเครื่องเข้าติดต่อที่ <strong>{PARTNER_CENTERS.find(c => c.id === selectedCenter)?.name}</strong> ได้ทันที โดยแสดงเลขอีมี่นี้ต่อช่าง
         </div>
         <button 
@@ -52,15 +52,15 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Device Quick Info */}
         <div style={{
-          padding: '10px 14px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid var(--border-glass)',
+          padding: '12px 14px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
           borderRadius: 'var(--radius-sm)',
           fontSize: '0.82rem'
         }}>
           <span style={{ color: 'var(--text-subtle)' }}>เครื่องที่ขอรับบริการ: </span>
-          <strong style={{ color: '#fff' }}>{device?.device_model}</strong>
-          <div style={{ color: 'var(--accent-cyan)', fontFamily: 'monospace', marginTop: '2px' }}>
+          <strong style={{ color: '#0f172a' }}>{device?.device_model}</strong>
+          <div style={{ color: '#b45309', fontFamily: 'monospace', fontWeight: '600', marginTop: '2px' }}>
             IMEI: {device?.imei}
           </div>
         </div>
@@ -83,16 +83,18 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
                 onClick={() => setSymptomType(cat.id)}
                 style={{
                   padding: '10px 8px',
-                  background: symptomType === cat.id ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  border: `1px solid ${symptomType === cat.id ? 'var(--accent-cyan)' : 'var(--border-glass)'}`,
+                  background: symptomType === cat.id ? '#fef3c7' : '#ffffff',
+                  border: `1px solid ${symptomType === cat.id ? '#f59e0b' : '#e2e8f0'}`,
                   borderRadius: 'var(--radius-sm)',
-                  color: symptomType === cat.id ? 'var(--accent-cyan)' : 'var(--text-main)',
+                  color: symptomType === cat.id ? '#92400e' : '#1e293b',
                   fontSize: '0.8rem',
-                  fontWeight: '600',
+                  fontWeight: symptomType === cat.id ? '700' : '600',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                  boxShadow: symptomType === cat.id ? '0 2px 6px rgba(245, 158, 11, 0.15)' : 'none'
                 }}
               >
                 <span>{cat.icon}</span>
@@ -115,11 +117,11 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
             placeholder="เช่น เครื่องหล่นพื้นหน้าจอมีเส้นขีดดำ ทัชสกรีนด้านบนไม่ติด..."
             style={{
               width: '100%',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-glass)',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
-              color: '#fff',
+              color: '#0f172a',
               fontSize: '0.88rem',
               outline: 'none',
               fontFamily: 'inherit'
@@ -137,11 +139,11 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
             onChange={(e) => setSelectedCenter(e.target.value)}
             style={{
               width: '100%',
-              background: '#161f30',
-              border: '1px solid var(--border-glass)',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
-              color: '#fff',
+              color: '#0f172a',
               fontSize: '0.88rem',
               outline: 'none'
             }}
@@ -165,11 +167,11 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
             placeholder="081-234-5678"
             style={{
               width: '100%',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-glass)',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
-              color: '#fff',
+              color: '#0f172a',
               fontSize: '0.88rem',
               outline: 'none'
             }}

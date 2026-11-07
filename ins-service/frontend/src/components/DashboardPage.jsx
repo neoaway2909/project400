@@ -115,7 +115,7 @@ export default function DashboardPage() {
                   <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{pkg.name}</span>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: colors[i] }}>{pkg.count}</span>
                 </div>
-                <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
                     width: `${(pkg.count / maxPkg) * 100}%`,

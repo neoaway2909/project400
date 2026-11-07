@@ -33,3 +33,9 @@ build/
 
 # OS files
 Thumbs.db
+
+# Archives & nested downloaded folders
+*.zip
+project400-main/
+project400
+

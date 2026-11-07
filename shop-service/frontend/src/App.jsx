@@ -3,6 +3,7 @@ import Dashboard      from './components/Dashboard';
 import ReceiveStock   from './components/ReceiveStock';
 import ImeiSearch     from './components/ImeiSearch';
 import AvailableStock from './components/AvailableStock';
+import Checkout       from './pages/Checkout';
 
 const NAV = [
   {
@@ -19,6 +20,12 @@ const NAV = [
     ],
   },
   {
+    section: 'ขาย & ผูกประกัน',
+    items: [
+      { id: 'checkout',   label: 'POS ขายหน้าร้าน',  icon: '🛒' },
+    ],
+  },
+  {
     section: 'ค้นหา',
     items: [
       { id: 'imei-search', label: 'ค้นหา IMEI',    icon: '🔍' },
@@ -30,6 +37,7 @@ const PAGE_TITLES = {
   dashboard:   { title: 'Inventory Dashboard',    sub: 'ภาพรวมสต็อกโทรศัพท์ทั้งหมด' },
   receive:     { title: 'รับเครื่องเข้าคลัง',     sub: 'สแกน IMEI เพื่อเพิ่มสต็อก' },
   available:   { title: 'สินค้าพร้อมขาย',         sub: 'โทรศัพท์สถานะ IN_STOCK' },
+  checkout:    { title: 'POS Checkout & ผูกประกัน', sub: 'คิดเงินและส่งข้อมูลออกใบรับประกันดิจิทัล' },
   'imei-search': { title: 'ค้นหาประวัติ IMEI',  sub: 'ตรวจสอบสถานะและประวัติเครื่อง' },
 };
 
@@ -38,6 +46,7 @@ function renderPage(page) {
     case 'dashboard':   return <Dashboard />;
     case 'receive':     return <ReceiveStock />;
     case 'available':   return <AvailableStock />;
+    case 'checkout':    return <Checkout />;
     case 'imei-search': return <ImeiSearch />;
     default:            return <Dashboard />;
   }
@@ -96,9 +105,10 @@ export default function App() {
           <div className="topbar-right">
             <div style={{
               width: 36, height: 36, borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--clr-primary-600), var(--clr-accent-600))',
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '.8rem', fontWeight: 700,
+              fontSize: '.8rem', fontWeight: 800, color: '#78350f',
+              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)',
             }}>
               SA
             </div>

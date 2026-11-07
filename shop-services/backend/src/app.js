@@ -9,6 +9,7 @@ const inventoryRoutes = require('./routes/inventory.routes');
 const brandRoutes     = require('./routes/brand.routes');
 const modelRoutes     = require('./routes/model.routes');
 const repairWebhookRoutes = require('./routes/repair-webhooks.routes');
+const posRouter       = require('./api/posController');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/brands',    brandRoutes);
 app.use('/api/v1/models',    modelRoutes);
 app.use('/api/v1/pos/webhooks/repairs', repairWebhookRoutes);
+app.use('/api/v1/pos',       posRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────
 app.use((_req, res) =>

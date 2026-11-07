@@ -12,6 +12,10 @@ const request = async (method, path, body) => {
 };
 
 export const api = {
+  // Generic HTTP
+  get:              (path)       => request('GET', path),
+  post:             (path, body) => request('POST', path, body),
+
   // Inventory
   getSummary:       ()           => request('GET',  '/inventory/summary'),
   getAvailableStock:(params = {}) => request('GET',  `/inventory/available-stock?${new URLSearchParams(params)}`),

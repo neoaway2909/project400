@@ -186,7 +186,7 @@ export default function VerifyPage({ addToast }) {
 
               {/* Coverage Details */}
               {result.coverage_details && (
-                <div style={{ marginTop: '16px', padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ marginTop: '16px', padding: '16px', borderRadius: 'var(--radius-md)', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     ℹ️ รายละเอียดความคุ้มครอง
                   </div>

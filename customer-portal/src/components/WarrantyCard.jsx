@@ -38,7 +38,7 @@ export default function WarrantyCard({ device, onGoToRepair }) {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
           <span style={{ color: 'var(--text-muted)' }}>วงเงินความคุ้มครองคงเหลือ</span>
-          <span style={{ color: 'var(--accent-cyan)', fontWeight: '700' }}>
+          <span style={{ color: '#b45309', fontWeight: '700' }}>
             ฿{Number(device.remaining_claim_amount || 0).toLocaleString()} / ฿{Number(device.max_coverage_amount || 0).toLocaleString()}
           </span>
         </div>
@@ -53,7 +53,7 @@ export default function WarrantyCard({ device, onGoToRepair }) {
             <div className="footer-cell-value">
               {new Date(device.coverage_end).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)' }}>
+            <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: '600' }}>
               (เหลืออีก {daysRemaining} วัน)
             </div>
           </div>
@@ -75,29 +75,29 @@ export default function WarrantyCard({ device, onGoToRepair }) {
           onClick={onGoToRepair}
           style={{
             marginTop: '14px',
-            background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.15), rgba(59, 130, 246, 0.15))',
-            border: '1px solid var(--accent-cyan)',
+            background: 'linear-gradient(90deg, #fffbeb, #fef3c7)',
+            border: '1px solid #fcd34d',
             borderRadius: 'var(--radius-md)',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             cursor: 'pointer',
-            boxShadow: '0 0 15px rgba(0, 240, 255, 0.2)'
+            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.15)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '1.4rem' }}>🔧</span>
             <div>
-              <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#fff' }}>
+              <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#78350f' }}>
                 เครื่องกำลังดำเนินการซ่อมอยู่!
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>
+              <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: '600' }}>
                 แตะที่นี่เพื่อดูขั้นตอนแบบเรียลไทม์ →
               </div>
             </div>
           </div>
-          <span style={{ fontSize: '1.2rem', color: 'var(--accent-cyan)' }}>›</span>
+          <span style={{ fontSize: '1.2rem', color: '#d97706', fontWeight: '700' }}>›</span>
         </div>
       )}
 

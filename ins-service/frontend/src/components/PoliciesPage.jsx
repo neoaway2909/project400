@@ -184,7 +184,7 @@ export default function PoliciesPage() {
                 ['วงเงินคงเหลือ', `฿${formatMoney(selected.remaining_claim_amount)}`],
                 ['เคลมแล้ว', `${selected.claim_count} / ${selected.max_claim_count} ครั้ง`],
               ].map(([label, value]) => (
-                <div key={label} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.03)' }}>
+                <div key={label} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>{label}</div>
                   <div style={{ fontSize: '13px', fontWeight: 600, wordBreak: 'break-all' }}>{value}</div>
                 </div>

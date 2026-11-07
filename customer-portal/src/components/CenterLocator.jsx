@@ -19,14 +19,14 @@ export default function CenterLocator() {
             <div className="center-icon">🏬</div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#fff' }}>
+                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#0f172a' }}>
                   {c.name}
                 </div>
-                <span style={{ fontSize: '0.78rem', color: '#f59e0b', fontWeight: '700' }}>
+                <span style={{ fontSize: '0.78rem', color: '#d97706', fontWeight: '700' }}>
                   ★ {c.rating}
                 </span>
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--accent-cyan)', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: '600', marginTop: '2px' }}>
                 {c.zone}
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0' }}>
@@ -41,17 +41,21 @@ export default function CenterLocator() {
                 <a 
                   href={`tel:${c.tel}`}
                   style={{
-                    padding: '4px 10px',
-                    background: 'rgba(0, 240, 255, 0.12)',
-                    border: '1px solid var(--accent-cyan)',
+                    padding: '5px 12px',
+                    background: '#fef3c7',
+                    border: '1px solid #fde68a',
                     borderRadius: '6px',
-                    color: 'var(--accent-cyan)',
+                    color: '#92400e',
                     fontSize: '0.75rem',
                     textDecoration: 'none',
-                    fontWeight: '600'
+                    fontWeight: '700',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 6px rgba(245, 158, 11, 0.12)'
                   }}
                 >
-                  📞 โทร {c.tel}
+                  <span>📞</span> โทร {c.tel}
                 </a>
               </div>
             </div>
