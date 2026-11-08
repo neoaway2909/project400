@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PARTNER_CENTERS } from '../api';
 
 export default function ClaimForm({ device, onSubmitSuccess }) {
+  const isExpired = device?.policy_status === 'EXPIRED';
   const [symptomType, setSymptomType] = useState('SCREEN');
   const [description, setDescription] = useState('');
   const [selectedCenter, setSelectedCenter] = useState('CTR-001');
@@ -178,13 +179,43 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
           />
         </div>
 
+        {isExpired && (
+          <div style={{
+            padding: '12px 14px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 'var(--radius-sm)',
+            color: '#991b1b',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>🚫</span>
+            <div>
+              <div>ไม่สามารถส่งเคลมประกันได้</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: '400', color: '#b91c1c' }}>
+                กรมธรรม์ของอุปกรณ์เครื่องนี้หมดอายุความคุ้มครองแล้ว (EXPIRED)
+              </div>
+            </div>
+          </div>
+        )}
+
         <button 
           type="submit"
-          disabled={submitting}
+          disabled={submitting || isExpired}
           className="search-btn"
-          style={{ width: '100%', padding: '12px', marginTop: '6px' }}
+          style={{ 
+            width: '100%', 
+            padding: '12px', 
+            marginTop: '6px',
+            opacity: isExpired ? 0.5 : 1,
+            cursor: isExpired ? 'not-allowed' : 'pointer',
+            backgroundColor: isExpired ? '#94a3b8' : undefined
+          }}
         >
-          {submitting ? 'กำลังส่งข้อมูลเปิดเคส...' : 'ยืนยันการแจ้งเคลมส่งซ่อม'}
+          {isExpired ? 'ไม่สามารถแจ้งเคลมได้ (กรมธรรม์หมดอายุ)' : submitting ? 'กำลังส่งข้อมูลเปิดเคส...' : 'ยืนยันการแจ้งเคลมส่งซ่อม'}
         </button>
       </form>
     </div>

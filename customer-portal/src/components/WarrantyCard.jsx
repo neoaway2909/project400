@@ -28,8 +28,8 @@ export default function WarrantyCard({ device, onGoToRepair }) {
             </div>
           </div>
           <div className={`card-status-badge ${isActive ? 'active' : 'expired'}`}>
-            <span>{isActive ? '●' : '✕'}</span>
-            <span>{isActive ? 'คุ้มครองปกติ' : 'หมดอายุ'}</span>
+            <span>{isActive ? '●' : '●'}</span>
+            <span>{isActive ? 'คุ้มครองปกติ' : 'หมดอายุ (EXPIRED)'}</span>
           </div>
         </div>
 
@@ -38,13 +38,19 @@ export default function WarrantyCard({ device, onGoToRepair }) {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
           <span style={{ color: 'var(--text-muted)' }}>วงเงินความคุ้มครองคงเหลือ</span>
-          <span style={{ color: '#b45309', fontWeight: '700' }}>
+          <span style={{ color: isActive ? '#b45309' : '#94a3b8', fontWeight: '700' }}>
             ฿{Number(device.remaining_claim_amount || 0).toLocaleString()} / ฿{Number(device.max_coverage_amount || 0).toLocaleString()}
           </span>
         </div>
 
         <div className="coverage-progress-bar">
-          <div className="coverage-fill" style={{ width: `${coveragePercent}%` }}></div>
+          <div 
+            className="coverage-fill" 
+            style={{ 
+              width: `${coveragePercent}%`,
+              background: isActive ? 'linear-gradient(90deg, #f59e0b, #d97706)' : '#cbd5e1'
+            }}
+          ></div>
         </div>
 
         <div className="card-footer-grid">
@@ -53,8 +59,14 @@ export default function WarrantyCard({ device, onGoToRepair }) {
             <div className="footer-cell-value">
               {new Date(device.coverage_end).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: '600' }}>
-              (เหลืออีก {daysRemaining} วัน)
+            <div style={{ 
+              fontSize: '0.72rem', 
+              color: isActive ? '#b45309' : '#dc2626', 
+              fontWeight: '600' 
+            }}>
+              {isActive && daysRemaining > 0 
+                ? `(เหลืออีก ${daysRemaining} วัน)` 
+                : '(สิ้นสุดความคุ้มครองแล้ว)'}
             </div>
           </div>
           <div>
@@ -67,6 +79,30 @@ export default function WarrantyCard({ device, onGoToRepair }) {
             </div>
           </div>
         </div>
+
+        {!isActive && (
+          <div style={{
+            marginTop: '12px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 14px',
+            fontSize: '0.8rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+            <div>
+              <div>สถานะ: สิ้นสุดระยะเวลาคุ้มครองแล้ว (EXPIRED)</div>
+              <div style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: '400', marginTop: '2px' }}>
+                กรมธรรม์นี้หมดอายุการคุ้มครองตามสัญญา ไม่สามารถส่งเคลมหรือเบิกอะไหล่ได้
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live Repair Alert Banner if currently in repair */}

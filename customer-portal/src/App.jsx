@@ -6,9 +6,9 @@ import ClaimForm from './components/ClaimForm';
 import CenterLocator from './components/CenterLocator';
 
 const DEMO_DEVICES = [
+  { label: 'OPPO Find X7 (หมดอายุ)', imei: '012345678901234' },
   { label: 'iPhone 15 Pro (กำลังซ่อม)', imei: '358941091234567' },
-  { label: 'S24 Ultra (ประกัน 2 ปี)', imei: '351234567890001' },
-  { label: 'iPhone 13 (หมดอายุ)', imei: '350000000000000' }
+  { label: 'S24 Ultra (ประกัน 2 ปี)', imei: '490154203237518' }
 ];
 
 export default function App() {
@@ -69,8 +69,8 @@ export default function App() {
             className="search-input"
             value={imeiInput}
             onChange={(e) => setImeiInput(e.target.value)}
-            placeholder="ค้นหาเลขอีมี่ (IMEI 15 หลัก)..."
-            maxLength="15"
+            placeholder="ค้นหาเลขอีมี่ (IMEI), กรมธรรม์, หรือชื่อรุ่น..."
+            maxLength="50"
           />
           <button type="submit" className="search-btn">
             ค้นหา
@@ -107,7 +107,7 @@ export default function App() {
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>กำลังตรวจสอบสถานะกับเซิร์ฟเวอร์ประกัน...</div>
             <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
           </div>
-        ) : (
+        ) : device ? (
           <>
             {activeTab === 'warranty' && (
               <WarrantyCard 
@@ -131,6 +131,37 @@ export default function App() {
               <CenterLocator />
             )}
           </>
+        ) : (
+          <div style={{
+            margin: '30px 16px',
+            padding: '36px 20px',
+            background: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid #e2e8f0',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow-card)'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔎</div>
+            <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a', marginBottom: '8px' }}>
+              ไม่พบข้อมูลกรมธรรม์
+            </div>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '20px' }}>
+              ไม่พบข้อมูลสำหรับคำค้นหา <span style={{ color: '#b45309', fontWeight: '700' }}>"{imeiInput}"</span><br />
+              กรุณาตรวจสอบเลขอีมี่ (IMEI 15 หลัก) หรือกดเลือกปุ่มทดสอบด้านบน
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {DEMO_DEVICES.map((d) => (
+                <button
+                  key={d.imei}
+                  onClick={() => handleSelectDemo(d.imei)}
+                  className="chip-btn"
+                  style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </main>
 

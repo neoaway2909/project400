@@ -1,29 +1,54 @@
-// src/api.js - Customer Portal API Service & Rich Mock Engine
+// src/api.js - Customer Portal API Service & Shared Store Synchronizer
 
 const BASE_URL_INSURANCE = 'http://localhost:3001/api/v1';
 
-// Sample Mock Devices for Instant Demonstration
+// Exact synchronization with Insurance Database (mockStore.js)
 export const MOCK_DATABASE = {
+  // 1. OPPO Find X7 Ultra - EXPIRED Policy (POL-2025-009999)
+  '012345678901234': {
+    is_valid: false,
+    policy_no: 'POL-2025-009999',
+    imei: '012345678901234',
+    device_model: 'OPPO Find X7 Ultra',
+    customer_name: 'วีระ ขยันทำ',
+    customer_phone: '0621234567',
+    customer_email: 'wira@example.com',
+    policy_status: 'EXPIRED',
+    coverage_start: '2025-09-01T09:00:00.000Z',
+    coverage_end: '2026-09-01T23:59:59.000Z',
+    max_coverage_amount: 15000,
+    remaining_claim_amount: 15000,
+    claim_count: 0,
+    max_claim_count: 1,
+    package_name: 'ประกันจอแตก 1 ปี',
+    benefits: [
+      { name: 'ประกันเปลี่ยนหน้าจอแท้ (หมดอายุสัญญา)', status: 'สิ้นสุดความคุ้มครองแล้ว' },
+      { name: 'ระยะเวลาคุ้มครอง 1 ปี (สิ้นสุด 1 ก.ย. 2026)', status: 'EXPIRED' }
+    ],
+    active_repair: null
+  },
+
+  // 2. iPhone 15 Pro - ACTIVE Policy with Active Repair Job (POL-2026-000001)
   '358941091234567': {
     is_valid: true,
-    policy_no: 'POL-2026-008921',
+    policy_no: 'POL-2026-000001',
     imei: '358941091234567',
     device_model: 'iPhone 15 Pro 256GB Black Titanium',
-    customer_name: 'คุณสมชาย ใจดี',
-    customer_phone: '081-234-5678',
+    customer_name: 'สมชาย ใจดี',
+    customer_phone: '0812345678',
+    customer_email: 'somchai@example.com',
     policy_status: 'ACTIVE',
-    coverage_start: '2026-10-22T10:00:00Z',
-    coverage_end: '2027-10-22T23:59:59Z',
+    coverage_start: '2026-10-01T10:00:00.000Z',
+    coverage_end: '2027-10-01T23:59:59.000Z',
     max_coverage_amount: 41900,
     remaining_claim_amount: 33400,
     claim_count: 1,
     max_claim_count: 2,
-    package_name: 'CareShield Accidental & Screen Protect (1 ปี)',
+    package_name: 'ประกันอุบัติเหตุและจอแตก 1 ปี',
     benefits: [
       { name: 'ประกันจอแตกแท้ 100%', status: 'เคลมแล้ว 1 ครั้ง (เหลือ 1 ครั้ง)' },
       { name: 'ประกันอุบัติเหตุตกน้ำ / ของเหลวเข้า', status: 'คุ้มครองเต็มวงเงิน' },
-      { name: 'บริการรับ-ส่งเครื่องซ่อมฟรีถึงบ้าน', status: 'สิทธิ์ใช้งานได้' },
-      { name: 'เครื่องสำรองใช้ระหว่างรอซ่อม', status: 'สิทธิ์ใช้งานได้' }
+      { name: 'บริการรับ-ส่งเครื่องซ่อมฟรีถึงบ้าน', status: 'สิทธิ์ใช้งานได้' }
     ],
     active_repair: {
       ticket_id: 'REP-2026-1004',
@@ -46,45 +71,28 @@ export const MOCK_DATABASE = {
       ]
     }
   },
-  '351234567890001': {
+
+  // 3. Samsung Galaxy S24 Ultra - ACTIVE 2-Year Diamond Policy (POL-2026-000002)
+  '490154203237518': {
     is_valid: true,
-    policy_no: 'POL-2026-000112',
-    imei: '351234567890001',
-    device_model: 'Samsung Galaxy S24 Ultra 512GB Titanium Gray',
-    customer_name: 'คุณวราภรณ์ มั่งมี',
-    customer_phone: '089-876-5432',
+    policy_no: 'POL-2026-000002',
+    imei: '490154203237518',
+    device_model: 'Samsung Galaxy S24 Ultra 512GB',
+    customer_name: 'สมหญิง รักดี',
+    customer_phone: '0898765432',
+    customer_email: 'somying@example.com',
     policy_status: 'ACTIVE',
-    coverage_start: '2026-09-15T08:00:00Z',
-    coverage_end: '2028-09-15T23:59:59Z',
-    max_coverage_amount: 52900,
-    remaining_claim_amount: 52900,
+    coverage_start: '2026-10-15T09:00:00.000Z',
+    coverage_end: '2028-10-15T23:59:59.000Z',
+    max_coverage_amount: 50000,
+    remaining_claim_amount: 50000,
     claim_count: 0,
     max_claim_count: 3,
-    package_name: 'CareShield Ultimate Diamond (2 ปี)',
+    package_name: 'ประกันครอบจักรวาล 2 ปี',
     benefits: [
       { name: 'ประกันเปลี่ยนเครื่องใหม่ทันทีใน 30 วัน', status: 'พร้อมใช้งาน' },
       { name: 'ประกันจอแตกไม่จำกัดจำนวนครั้ง', status: 'พร้อมใช้งาน' },
-      { name: 'ประกันเมนบอร์ดและแบตเตอรี่เสื่อม', status: 'พร้อมใช้งาน' }
-    ],
-    active_repair: null
-  },
-  '350000000000000': {
-    is_valid: false,
-    policy_no: 'POL-2024-001090',
-    imei: '350000000000000',
-    device_model: 'iPhone 13 128GB Starlight',
-    customer_name: 'คุณนรินทร์ พงษ์ไพโรจน์',
-    customer_phone: '085-555-1234',
-    policy_status: 'EXPIRED',
-    coverage_start: '2024-10-01T00:00:00Z',
-    coverage_end: '2025-10-01T23:59:59Z',
-    max_coverage_amount: 24900,
-    remaining_claim_amount: 0,
-    claim_count: 2,
-    max_claim_count: 2,
-    package_name: 'CareShield Basic 1 ปี (หมดอายุแล้ว)',
-    benefits: [
-      { name: 'หมดอายุความคุ้มครอง', status: 'Expired' }
+      { name: 'ประกันครอบจักรวาลและคุ้มครองเครื่องหาย', status: 'พร้อมใช้งาน' }
     ],
     active_repair: null
   }
@@ -123,49 +131,68 @@ export const PARTNER_CENTERS = [
   }
 ];
 
-export async function fetchCustomerDevice(imei) {
-  const cleanImei = String(imei || '').trim();
-  
-  // 1. Try real live Insurance backend API first
-  try {
-    const res = await fetch(`${BASE_URL_INSURANCE}/policies/verify?imei=${cleanImei}`);
-    if (res.ok) {
-      const liveData = await res.json();
-      if (liveData && liveData.imei) {
-        return liveData;
+/**
+ * Fetch and normalize policy data by IMEI, Policy No, or Model Name
+ */
+export async function fetchCustomerDevice(searchQuery) {
+  const query = String(searchQuery || '').trim();
+  if (!query) return null;
+
+  // 1. If 15 digits, try live Insurance backend API first
+  if (/^[0-9]{15}$/.test(query)) {
+    try {
+      const res = await fetch(`${BASE_URL_INSURANCE}/policies/verify?imei=${query}`);
+      if (res.ok) {
+        const live = await res.json();
+        if (live && live.imei) {
+          return {
+            is_valid: live.is_valid,
+            policy_no: live.policy_no,
+            imei: live.imei,
+            device_model: live.device_model,
+            customer_name: live.customer_name || 'ลูกค้าคนพิเศษ',
+            customer_phone: live.customer_phone || '08X-XXX-XXXX',
+            policy_status: live.policy_status,
+            coverage_start: live.coverage_details?.coverage_start || new Date().toISOString(),
+            coverage_end: live.coverage_details?.expires_at,
+            max_coverage_amount: live.coverage_details?.remaining_claim_amount || 0,
+            remaining_claim_amount: live.coverage_details?.remaining_claim_amount || 0,
+            claim_count: live.coverage_details?.claim_count || 0,
+            max_claim_count: live.coverage_details?.max_claim_count || 2,
+            package_name: live.coverage_details?.package_name || 'ประกันคุ้มครองโทรศัพท์',
+            benefits: (live.coverage_details?.claimable_rules || []).map(r => ({
+              name: r.rule_name || r.coverage_type,
+              status: `วงเงินไม่เกิน ฿${Number(r.max_amount || 0).toLocaleString()}`
+            })),
+            active_repair: null
+          };
+        }
       }
+    } catch (err) {
+      // Backend offline or networking error, fallback to synchronized database
+      console.log('Live Insurance API offline, using local database:', err.message);
     }
-  } catch (err) {
-    // Backend offline or networking error, gracefully fallback to mock demo
-    console.log('Live Insurance API offline, using local smart cache:', err.message);
   }
 
-  // 2. Fallback to rich Mock data
-  if (MOCK_DATABASE[cleanImei]) {
-    return MOCK_DATABASE[cleanImei];
+  // 2. Direct lookup in synchronized MOCK_DATABASE by exact IMEI
+  if (MOCK_DATABASE[query]) {
+    return MOCK_DATABASE[query];
   }
 
-  // 3. Fallback generic active device for unknown IMEI
-  return {
-    is_valid: true,
-    policy_no: `POL-2026-${cleanImei.slice(-6)}`,
-    imei: cleanImei,
-    device_model: 'Smartphone (เครื่องศูนย์ประกันศูนย์ซ่อม)',
-    customer_name: 'ลูกค้าคนพิเศษ (คุณผู้ใช้งาน)',
-    customer_phone: '08X-XXX-XXXX',
-    policy_status: 'ACTIVE',
-    coverage_start: '2026-10-01T00:00:00Z',
-    coverage_end: '2027-10-01T23:59:59Z',
-    max_coverage_amount: 35000,
-    remaining_claim_amount: 35000,
-    claim_count: 0,
-    max_claim_count: 2,
-    package_name: 'CareShield Accidental Full Protect 1Y',
-    benefits: [
-      { name: 'ประกันจอแตกแท้ 100%', status: 'สิทธิ์พร้อมใช้งาน' },
-      { name: 'ประกันอุบัติเหตุน้ำเข้า', status: 'สิทธิ์พร้อมใช้งาน' },
-      { name: 'บริการตรวจเช็คสภาพเครื่องฟรี', status: 'ไม่จำกัดครั้ง' }
-    ],
-    active_repair: null
-  };
+  // 3. Smart Search: Search by Policy No (e.g. POL-2025-009999) or Model Name (e.g. OPPO, Find X7, iPhone, Samsung)
+  const lowerQuery = query.toLowerCase();
+  const allDevices = Object.values(MOCK_DATABASE);
+  const matchedDevice = allDevices.find(d => 
+    d.policy_no.toLowerCase().includes(lowerQuery) ||
+    d.device_model.toLowerCase().includes(lowerQuery) ||
+    d.imei.includes(query) ||
+    (d.customer_name && d.customer_name.toLowerCase().includes(lowerQuery))
+  );
+
+  if (matchedDevice) {
+    return matchedDevice;
+  }
+
+  // 4. Query not found in database or live API
+  return null;
 }
