@@ -3,6 +3,46 @@ const INS_BASE = import.meta.env.VITE_INS_API_URL || 'http://localhost:3001/api/
 const INS_API_KEY = 'SHOP-BKK-01-SECRET-KEY-2026';
 const LOCAL_ORDERS_KEY = 'phoneshop_pos_orders_v1';
 const LOCAL_CLAIMS_KEY = 'phoneshop_claims_store_v1';
+const LOCAL_MODELS_KEY = 'phoneshop_model_overrides_v1';
+const LOCAL_BRANDS_KEY = 'phoneshop_custom_brands_v1';
+
+function readModelOverrides() {
+  try {
+    const raw = localStorage.getItem(LOCAL_MODELS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveModelOverride(id, data) {
+  try {
+    const map = readModelOverrides();
+    map[String(id)] = { ...(map[String(id)] || {}), ...data, id: Number(id) };
+    localStorage.setItem(LOCAL_MODELS_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+function readCustomBrands() {
+  try {
+    const raw = localStorage.getItem(LOCAL_BRANDS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomBrand(brand) {
+  try {
+    const list = readCustomBrands().filter(b => b.id !== brand.id && b.name !== brand.name);
+    list.push(brand);
+    localStorage.setItem(LOCAL_BRANDS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
 
 const DEFAULT_CLAIMS = [
   {
@@ -141,11 +181,17 @@ function buildOrdersFromPolicies(policies = []) {
 function computeClaimUsageFromLogs(logs = []) {
   const claimsMap = new Map();
   for (const l of [...logs].reverse()) {
-    const reason = l.reason || '';
+    const reason = (l.reason || '').trim();
+    if (!reason || reason === 'sync' || /^ซิงค์/.test(reason)) continue;
+
     const ticketMatch = reason.match(/REP-\d{4}-\d+/);
     let key = ticketMatch ? ticketMatch[0] : null;
-    if (!key && l.new_status === 'CLAIM_REPAIR' && !/กำลังดำเนินการซ่อม|อัปเดตสถานะงานซ่อม/.test(reason)) {
-      key = `CLAIM-${l.id || l.changed_at}`;
+    if (key && claimsMap.has('PENDING_UNNAMED_CLAIM') && !claimsMap.has(key)) {
+      const prevCost = claimsMap.get('PENDING_UNNAMED_CLAIM');
+      claimsMap.delete('PENDING_UNNAMED_CLAIM');
+      claimsMap.set(key, prevCost);
+    } else if (!key && l.new_status === 'CLAIM_REPAIR' && /รับแจ้งเคลม|แจ้งเคลม/.test(reason)) {
+      key = 'PENDING_UNNAMED_CLAIM';
     }
     if (!key) continue;
     if (reason.includes('CANCELLED')) {
@@ -195,7 +241,7 @@ async function writeShopStatusLog(imei, targetStatus, changedBy, reason) {
     }
     const json = await res.json().catch(() => ({}));
     if (json?.data?.changed === false) {
-      const tempStatus = targetStatus === 'CLAIM_REPAIR' ? 'RESERVED' : 'CLAIM_REPAIR';
+      const tempStatus = targetStatus === 'RESERVED' ? 'IN_STOCK' : 'RESERVED';
       await doPut(tempStatus, 'sync');
       await doPut(targetStatus, reason);
     }
@@ -211,7 +257,25 @@ export const api = {
 
   // Inventory
   getSummary:       ()           => request('GET',  '/inventory/summary'),
-  getAvailableStock:(params = {}) => request('GET',  `/inventory/available-stock?${new URLSearchParams(params)}`),
+  getAvailableStock: async (params = {}) => {
+    const res = await request('GET', `/inventory/available-stock?${new URLSearchParams(params)}`);
+    const overrides = readModelOverrides();
+    if (Array.isArray(res?.data)) {
+      res.data = res.data.map(row => {
+        const ov = overrides[String(row.model_id)];
+        return ov
+          ? {
+              ...row,
+              model_name: ov.model_name || row.model_name,
+              storage: ov.storage || row.storage,
+              color: ov.color || row.color,
+              selling_price: ov.selling_price ?? row.selling_price,
+            }
+          : row;
+      });
+    }
+    return res;
+  },
   getImeiDetail:    (imei)       => request('GET',  `/inventory/imei/${imei}`),
   receiveStock:     (body)       => request('POST', '/inventory/receive', body),
   updateImeiStatus: (imei, body) => request('PUT',  `/inventory/imei/${imei}/status`, body),
@@ -229,7 +293,15 @@ export const api = {
     try {
       const shopRes = await request('GET', '/pos/orders');
       for (const o of shopRes.data || []) {
-        if (o?.order_id) orderMap.set(o.order_id, o);
+        if (o?.order_id) {
+          const prev = orderMap.get(o.order_id) || {};
+          orderMap.set(o.order_id, {
+            ...prev,
+            ...o,
+            payment_method: prev.payment_method || o.payment_method,
+            payment_details: o.payment_details || prev.payment_details || null,
+          });
+        }
       }
     } catch {
       // Shop backend may not have reloaded /pos/orders yet — continue to Insurance API
@@ -442,6 +514,49 @@ export const api = {
   },
 
   // Brands & Models
-  getBrands: ()          => request('GET', '/brands'),
-  getModels: (brandId)   => request('GET', `/models${brandId ? `?brandId=${brandId}` : ''}`),
+  getBrands: async () => {
+    const res = await request('GET', '/brands');
+    const custom = readCustomBrands();
+    const map = new Map();
+    for (const b of res?.data || []) map.set(b.id, b);
+    for (const b of custom) if (!map.has(b.id)) map.set(b.id, b);
+    return { success: true, data: Array.from(map.values()) };
+  },
+  createBrand: async (body) => {
+    const res = await request('POST', '/brands', body);
+    if (res?.data) saveCustomBrand(res.data);
+    return res;
+  },
+  getModels: async (brandId) => {
+    const res = await request('GET', `/models${brandId ? `?brandId=${brandId}` : ''}`);
+    const overrides = readModelOverrides();
+    const map = new Map();
+    for (const m of res?.data || []) {
+      const ov = overrides[String(m.id)];
+      map.set(Number(m.id), ov ? { ...m, ...ov } : m);
+    }
+    for (const ov of Object.values(overrides)) {
+      if (ov?.id && !map.has(Number(ov.id))) {
+        map.set(Number(ov.id), ov);
+      }
+    }
+    let list = Array.from(map.values());
+    if (brandId) list = list.filter(m => Number(m.brand_id) === Number(brandId));
+    return { success: true, data: list };
+  },
+  createModel: async (body) => {
+    const res = await request('POST', '/models', body);
+    if (res?.data) {
+      saveModelOverride(res.data.id, { ...body, ...res.data });
+    }
+    return res;
+  },
+  updateModel: async (id, body) => {
+    saveModelOverride(id, body);
+    try {
+      return await request('PATCH', `/models/${id}`, body);
+    } catch {
+      return { success: true, data: { id: Number(id), ...body } };
+    }
+  },
 };

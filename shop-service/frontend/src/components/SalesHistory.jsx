@@ -183,8 +183,13 @@ export default function SalesHistory({ onOpenClaimForImei }) {
                         {formatPrice(ord.total_amount)}
                       </div>
                       <div style={{ fontSize: '.72rem', color: 'var(--clr-text-muted)' }}>
-                        {ord.payment_method || 'CASH'} · {ord.payment_status || 'PAID'}
+                        {ord.payment_details?.label || ord.payment_method || 'CASH'} · {ord.payment_status || 'PAID'}
                       </div>
+                      {ord.payment_details?.type === 'CREDIT_INSTALLMENT' && (
+                        <div style={{ fontSize: '.72rem', color: 'var(--clr-primary-400)', fontWeight: 700 }}>
+                          ผ่อน ฿{Number(ord.payment_details.monthly_payment || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ด. ({ord.payment_details.months} งวด)
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -245,7 +250,13 @@ export default function SalesHistory({ onOpenClaimForImei }) {
             <div style={{ fontSize: '.85rem', marginBottom: 16, padding: 12, background: 'var(--clr-surface-2)', borderRadius: 'var(--radius-sm)' }}>
               <div><strong>ลูกค้า:</strong> {selectedOrder.customer_name} ({selectedOrder.customer_phone})</div>
               <div><strong>วันที่ชำระเงิน:</strong> {formatDate(selectedOrder.created_at)}</div>
-              <div><strong>วิธีชำระเงิน:</strong> {selectedOrder.payment_method} ({selectedOrder.payment_status})</div>
+              <div><strong>วิธีชำระเงิน:</strong> {selectedOrder.payment_details?.label || selectedOrder.payment_method} ({selectedOrder.payment_status})</div>
+              {selectedOrder.payment_details?.type === 'CREDIT_INSTALLMENT' && (
+                <div style={{ color: 'var(--clr-primary-400)', fontWeight: 700, marginTop: 4 }}>
+                  แผนผ่อนชำระ: ฿{Number(selectedOrder.payment_details.monthly_payment || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / เดือน × {selectedOrder.payment_details.months} งวด
+                  {selectedOrder.payment_details.interest_rate === 0 ? ' (ดอกเบี้ย 0%)' : ` (ดอกเบี้ย ${selectedOrder.payment_details.interest_rate}%/เดือน)`}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>

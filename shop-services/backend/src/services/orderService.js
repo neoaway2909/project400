@@ -17,6 +17,7 @@ class OrderService {
         customer_email: dto.customer?.email || '',
         total_amount: dto.totalAmount,
         payment_method: dto.paymentMethod || 'CASH',
+        payment_details: dto.paymentDetails || null,
         payment_status: dto.paymentStatus || 'PAID',
         created_at: createdAt,
       };

@@ -91,7 +91,7 @@ async function syncShopImeiStatus(imei, repairStatus, ticketId, summary, cost) {
     }
     const json = await res.json().catch(() => ({}));
     if (json?.data?.changed === false) {
-      const tempStatus = newStatus === 'CLAIM_REPAIR' ? 'RESERVED' : 'CLAIM_REPAIR';
+      const tempStatus = newStatus === 'RESERVED' ? 'IN_STOCK' : 'RESERVED';
       await doPut(tempStatus, 'sync');
       res = await doPut(newStatus, reason);
     }

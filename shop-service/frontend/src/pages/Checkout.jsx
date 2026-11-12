@@ -9,6 +9,60 @@ const WARRANTY_OPTIONS = [
   { code: 'PKG_FULL_2Y',     name: 'ประกันเครื่อง + จอแตก 2 ปีเต็ม',    price: 4990 },
 ];
 
+const PAYMENT_METHODS = [
+  { id: 'CASH',               label: 'เงินสด / QR PromptPay', sub: 'ชำระเต็มจำนวน ไม่มีค่าธรรมเนียม' },
+  { id: 'CREDIT_FULL',        label: 'บัตรเครดิต (รูดเต็มจำนวน)', sub: 'ชำระเต็มจำนวนผ่านบัตรเครดิต' },
+  { id: 'CREDIT_INSTALLMENT', label: 'บัตรเครดิต (ผ่อนชำระ)',     sub: 'ผ่อน 0% สูงสุด 10 เดือน หรือผ่อนนาน 24 เดือน' },
+];
+
+const CARD_NETWORKS = [
+  { id: 'VISA',       label: 'VISA',       badgeBg: '#1e3a8a', badgeColor: '#ffffff' },
+  { id: 'MASTERCARD', label: 'Mastercard', badgeBg: '#9a3412', badgeColor: '#ffffff' },
+  { id: 'JCB',        label: 'JCB',        badgeBg: '#065f46', badgeColor: '#ffffff' },
+  { id: 'UNIONPAY',   label: 'UnionPay',   badgeBg: '#0f766e', badgeColor: '#ffffff' },
+  { id: 'AMEX',       label: 'AMEX',       badgeBg: '#1d4ed8', badgeColor: '#ffffff' },
+];
+
+const CARD_BANKS = [
+  { id: 'KBANK',    name: 'กสิกรไทย (KBank Smart PAY)',       promo: 'ผ่อน 0% นานสูงสุด 10 เดือน' },
+  { id: 'SCB',      name: 'ไทยพาณิชย์ (SCB CardX ดีจัง)',      promo: 'ผ่อน 0% นานสูงสุด 10 เดือน' },
+  { id: 'KTC',      name: 'บัตรเครดิต KTC (KTC FLEXI)',       promo: 'ผ่อน 0% นานสูงสุด 10 เดือน' },
+  { id: 'KRUNGSRI', name: 'กรุงศรี / FirstChoice',            promo: 'ผ่อน 0% 10 เดือน หรือผ่อนนาน 24 เดือน' },
+  { id: 'BBL',      name: 'ธนาคารกรุงเทพ (BeSmart)',          promo: 'ผ่อน 0% นานสูงสุด 10 เดือน' },
+  { id: 'TTB',      name: 'ทหารไทยธนชาต (ttb so goood)',      promo: 'ผ่อน 0% นานสูงสุด 10 เดือน' },
+];
+
+const INSTALLMENT_PLANS = [
+  { months: 3,  monthlyRate: 0,    label: 'ผ่อน 3 เดือน',  tag: 'ดอกเบี้ย 0%' },
+  { months: 6,  monthlyRate: 0,    label: 'ผ่อน 6 เดือน',  tag: 'ดอกเบี้ย 0%' },
+  { months: 10, monthlyRate: 0,    label: 'ผ่อน 10 เดือน', tag: 'ดอกเบี้ย 0% ยอดนิยม' },
+  { months: 12, monthlyRate: 0.59, label: 'ผ่อน 12 เดือน', tag: 'ดอกเบี้ยพิเศษ 0.59%/เดือน' },
+  { months: 24, monthlyRate: 0.69, label: 'ผ่อน 24 เดือน', tag: 'ดอกเบี้ยพิเศษ 0.69%/เดือน' },
+];
+
+function calculateInstallment(baseAmount, plan) {
+  const principal = Number(baseAmount || 0);
+  if (!plan || principal <= 0) {
+    return {
+      months: plan?.months || 1,
+      monthlyRate: plan?.monthlyRate || 0,
+      totalInterest: 0,
+      grandTotal: principal,
+      monthlyPayment: principal,
+    };
+  }
+  const totalInterest = Math.round(principal * (plan.monthlyRate / 100) * plan.months);
+  const grandTotal = principal + totalInterest;
+  const monthlyPayment = grandTotal / plan.months;
+  return {
+    months: plan.months,
+    monthlyRate: plan.monthlyRate,
+    totalInterest,
+    grandTotal,
+    monthlyPayment,
+  };
+}
+
 // Helper: expand grouped model stock rows into individual unique IMEI devices
 function expandStockRows(rows) {
   const expanded = [];
@@ -49,6 +103,11 @@ export default function Checkout() {
     phone_number: '0812345678',
     email: 'somchai@example.com',
   });
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [cardNetwork, setCardNetwork] = useState('VISA');
+  const [cardBank, setCardBank] = useState('KBANK');
+  const [cardLast4, setCardLast4] = useState('4242');
+  const [installmentMonths, setInstallmentMonths] = useState(10);
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(false);
   const [stockLoading, setStockLoading] = useState(true);
@@ -92,6 +151,11 @@ export default function Checkout() {
     return sum + Number(i.price) + Number(i.warranty?.price || 0);
   }, 0);
 
+  const selectedPlan = INSTALLMENT_PLANS.find(p => p.months === installmentMonths) || INSTALLMENT_PLANS[2];
+  const installmentCalc = calculateInstallment(totalAmount, selectedPlan);
+  const finalPayableAmount = paymentMethod === 'CREDIT_INSTALLMENT' ? installmentCalc.grandTotal : totalAmount;
+  const selectedBankObj = CARD_BANKS.find(b => b.id === cardBank) || CARD_BANKS[0];
+
   const handleCheckout = async () => {
     const cleanPhone = String(customer.phone_number || '').replace(/\D/g, '');
     if (!customer.full_name.trim()) {
@@ -102,14 +166,49 @@ export default function Checkout() {
       alert('กรุณากรอกเบอร์โทรศัพท์ 10 หลัก (ขึ้นต้นด้วย 0)');
       return;
     }
+    if (paymentMethod !== 'CASH' && cardLast4 && !/^[0-9]{4}$/.test(cardLast4)) {
+      alert('กรุณากรอกเลขท้ายบัตรเครดิต 4 หลัก');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg(null);
 
+    const paymentDetails = paymentMethod === 'CASH'
+      ? { type: 'CASH', label: 'เงินสด / QR PromptPay' }
+      : paymentMethod === 'CREDIT_FULL'
+      ? {
+          type: 'CREDIT_FULL',
+          card_network: cardNetwork,
+          card_bank: cardBank,
+          card_bank_name: selectedBankObj.name,
+          card_last4: cardLast4 || '4242',
+          months: 1,
+          interest_rate: 0,
+          monthly_payment: totalAmount,
+          total_interest: 0,
+          grand_total: totalAmount,
+          label: `บัตรเครดิตเต็มจำนวน ${cardBank} (${cardNetwork} *${cardLast4 || '4242'})`,
+        }
+      : {
+          type: 'CREDIT_INSTALLMENT',
+          card_network: cardNetwork,
+          card_bank: cardBank,
+          card_bank_name: selectedBankObj.name,
+          card_last4: cardLast4 || '4242',
+          months: installmentCalc.months,
+          interest_rate: installmentCalc.monthlyRate,
+          monthly_payment: Math.round(installmentCalc.monthlyPayment * 100) / 100,
+          total_interest: installmentCalc.totalInterest,
+          grand_total: installmentCalc.grandTotal,
+          label: `ผ่อนบัตรเครดิต ${cardBank} (${cardNetwork} *${cardLast4 || '4242'}) · ${installmentCalc.months} เดือน`,
+        };
+
     const payload = {
       customerId: '00000000-0000-0000-0000-000000000001',
-      paymentMethod: 'CASH',
-      totalAmount,
+      paymentMethod,
+      paymentDetails,
+      totalAmount: finalPayableAmount,
       items: selected.map(i => ({
         model_name: i.model_name,
         imei: i.imei,
@@ -135,8 +234,9 @@ export default function Checkout() {
         customer_name: payload.customer.full_name,
         customer_phone: payload.customer.phone_number,
         customer_email: payload.customer.email,
-        total_amount: res.totalAmount || totalAmount,
+        total_amount: res.totalAmount || finalPayableAmount,
         payment_method: payload.paymentMethod,
+        payment_details: paymentDetails,
         payment_status: res.paymentStatus || 'PAID',
         created_at: new Date().toISOString(),
         items: payload.items.map((it, idx) => ({
@@ -147,7 +247,7 @@ export default function Checkout() {
           sync_status: warrantyByImei[it.imei]?.policy_no ? 'SUCCESS' : null,
         })),
       });
-      setReceipt(res);
+      setReceipt({ ...res, paymentDetails });
       setSelected([]);
       // Reload stock so sold IMEI immediately disappears from POS list
       await loadAvailableDevices();
@@ -404,6 +504,246 @@ export default function Checkout() {
               </div>
             )}
 
+            {/* Payment Method & Credit Card Installment Section */}
+            <div style={{
+              marginTop: '14px',
+              paddingTop: '14px',
+              borderTop: '1px solid var(--clr-border)',
+            }}>
+              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--clr-primary-400)', margin: '0 0 10px 0' }}>
+                4. เลือกช่องทางชำระเงิน & แผนผ่อนบัตรเครดิต
+              </h4>
+
+              {/* Payment method buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                {PAYMENT_METHODS.map(pm => {
+                  const active = paymentMethod === pm.id;
+                  return (
+                    <div
+                      key={pm.id}
+                      onClick={() => setPaymentMethod(pm.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: active ? '2px solid var(--clr-primary-500)' : '1px solid var(--clr-border)',
+                        background: active ? 'rgba(245, 158, 11, 0.12)' : 'var(--clr-surface-2)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={active}
+                          onChange={() => setPaymentMethod(pm.id)}
+                          style={{ accentColor: 'var(--clr-primary-500)' }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--clr-text)' }}>
+                            {pm.label}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--clr-text-muted)' }}>
+                            {pm.sub}
+                          </div>
+                        </div>
+                      </div>
+                      {pm.id === 'CREDIT_INSTALLMENT' && (
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: '#dcfce7',
+                          color: '#166534',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                        }}>
+                          0% สูงสุด 10 ด.
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Card Type & Issuing Bank Selection */}
+              {paymentMethod !== 'CASH' && (
+                <div style={{
+                  padding: '12px',
+                  background: 'var(--clr-surface-2)',
+                  border: '1px solid var(--clr-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  marginBottom: '12px',
+                }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label className="form-label" style={{ marginBottom: '6px', display: 'block', fontSize: '0.8rem' }}>
+                      เลือกประเภทบัตรเครดิต (Card Network)
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {CARD_NETWORKS.map(net => {
+                        const isSel = cardNetwork === net.id;
+                        return (
+                          <button
+                            key={net.id}
+                            type="button"
+                            onClick={() => setCardNetwork(net.id)}
+                            style={{
+                              padding: '5px 11px',
+                              borderRadius: '6px',
+                              border: isSel ? '2px solid var(--clr-primary-500)' : '1px solid var(--clr-border)',
+                              background: isSel ? net.badgeBg : '#ffffff',
+                              color: isSel ? net.badgeColor : 'var(--clr-text)',
+                              fontWeight: 700,
+                              fontSize: '0.76rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {net.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: '8px', marginBottom: paymentMethod === 'CREDIT_INSTALLMENT' ? '12px' : '0' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>ธนาคารผู้ออกบัตร</label>
+                      <select
+                        className="form-control"
+                        value={cardBank}
+                        onChange={e => setCardBank(e.target.value)}
+                        style={{ padding: '7px 10px', fontSize: '0.8rem' }}
+                      >
+                        {CARD_BANKS.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>เลขท้าย 4 หลัก</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        maxLength={4}
+                        placeholder="4242"
+                        value={cardLast4}
+                        onChange={e => setCardLast4(e.target.value.replace(/\D/g, ''))}
+                        style={{ padding: '7px 10px', fontSize: '0.8rem', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Installment Plan Table */}
+                  {paymentMethod === 'CREDIT_INSTALLMENT' && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--clr-text)' }}>
+                          ตารางเลือกแผนผ่อนชำระ ({selectedBankObj.name})
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--clr-primary-400)', fontWeight: 600 }}>
+                          {selectedBankObj.promo}
+                        </span>
+                      </div>
+
+                      <div style={{
+                        border: '1px solid var(--clr-border)',
+                        borderRadius: 'var(--radius-sm)',
+                        overflow: 'hidden',
+                        background: '#ffffff',
+                      }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                          <thead>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--clr-border)', textAlign: 'left' }}>
+                              <th style={{ padding: '7px 8px', width: '32px', textAlign: 'center' }}>เลือก</th>
+                              <th style={{ padding: '7px 8px' }}>จำนวนงวด</th>
+                              <th style={{ padding: '7px 8px', textAlign: 'center' }}>ดอกเบี้ย/ด.</th>
+                              <th style={{ padding: '7px 8px', textAlign: 'right' }}>ยอดผ่อน/เดือน</th>
+                              <th style={{ padding: '7px 8px', textAlign: 'right' }}>ยอดรวม</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {INSTALLMENT_PLANS.map(plan => {
+                              const calc = calculateInstallment(totalAmount, plan);
+                              const isChosen = installmentMonths === plan.months;
+                              return (
+                                <tr
+                                  key={plan.months}
+                                  onClick={() => setInstallmentMonths(plan.months)}
+                                  style={{
+                                    borderBottom: '1px solid var(--clr-border)',
+                                    background: isChosen ? 'rgba(245, 158, 11, 0.14)' : 'transparent',
+                                    cursor: 'pointer',
+                                    fontWeight: isChosen ? 700 : 500,
+                                  }}
+                                >
+                                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                                    <input
+                                      type="radio"
+                                      name="installmentPlan"
+                                      checked={isChosen}
+                                      onChange={() => setInstallmentMonths(plan.months)}
+                                      style={{ accentColor: 'var(--clr-primary-500)' }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: '8px' }}>
+                                    <div>{plan.months} เดือน</div>
+                                    <div style={{ fontSize: '0.68rem', color: plan.monthlyRate === 0 ? '#16a34a' : 'var(--clr-text-muted)' }}>
+                                      {plan.tag}
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                                    <span style={{
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      background: plan.monthlyRate === 0 ? '#dcfce7' : '#fef3c7',
+                                      color: plan.monthlyRate === 0 ? '#166534' : '#92400e',
+                                      fontWeight: 700,
+                                      fontSize: '0.72rem',
+                                    }}>
+                                      {plan.monthlyRate === 0 ? '0%' : `${plan.monthlyRate}%`}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'right', color: 'var(--clr-primary-400)', fontWeight: 700 }}>
+                                    ฿{calc.monthlyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700 }}>
+                                    ฿{calc.grandTotal.toLocaleString()}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {totalAmount > 0 && (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          fontSize: '0.78rem',
+                          color: '#065f46',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                          <span>
+                            ผ่อนผ่านบัตร <strong>{cardBank} ({cardNetwork})</strong> นาน <strong>{installmentCalc.months} งวด</strong>
+                          </span>
+                          <strong>
+                            งวดละ ฿{installmentCalc.monthlyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/เดือน
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -412,9 +752,17 @@ export default function Checkout() {
               borderTop: '1px solid var(--clr-border)',
               marginBottom: '16px'
             }}>
-              <span style={{ color: 'var(--clr-text-muted)', fontWeight: 600 }}>ยอดรวมสุทธิ</span>
+              <div>
+                <div style={{ color: 'var(--clr-text-muted)', fontWeight: 600 }}>ยอดรวมสุทธิ</div>
+                {paymentMethod === 'CREDIT_INSTALLMENT' && totalAmount > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--clr-primary-400)', fontWeight: 600 }}>
+                    ผ่อน ฿{installmentCalc.monthlyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × {installmentCalc.months} เดือน
+                    {installmentCalc.totalInterest > 0 ? ` (รวมดอกเบี้ย ฿${installmentCalc.totalInterest.toLocaleString()})` : ' (ดอกเบี้ย 0%)'}
+                  </div>
+                )}
+              </div>
               <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--clr-success-400)' }}>
-                ฿{totalAmount.toLocaleString()}
+                ฿{finalPayableAmount.toLocaleString()}
               </span>
             </div>
 
@@ -457,9 +805,29 @@ export default function Checkout() {
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--clr-text)', marginBottom: '4px' }}>
               ชำระเงิน & ตัดสต็อกสำเร็จ!
             </h3>
-            <p style={{ color: 'var(--clr-text-muted)', fontSize: '0.85rem', marginBottom: '16px' }}>
+            <p style={{ color: 'var(--clr-text-muted)', fontSize: '0.85rem', marginBottom: '12px' }}>
               เลขออเดอร์: <strong style={{ color: 'var(--clr-primary-400)' }}>{receipt.orderId}</strong>
             </p>
+
+            {receipt.paymentDetails && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: '#f8fafc',
+                border: '1px solid var(--clr-border)',
+                marginBottom: '14px',
+                fontSize: '0.82rem',
+                textAlign: 'left',
+              }}>
+                <div><strong>วิธีชำระเงิน:</strong> {receipt.paymentDetails.label}</div>
+                {receipt.paymentDetails.type === 'CREDIT_INSTALLMENT' && (
+                  <div style={{ color: 'var(--clr-primary-400)', fontWeight: 700, marginTop: '4px' }}>
+                    ยอดผ่อนชำระ: ฿{Number(receipt.paymentDetails.monthly_payment || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / เดือน × {receipt.paymentDetails.months} งวด
+                    {receipt.paymentDetails.interest_rate === 0 ? ' (ดอกเบี้ย 0%)' : ` (ดอกเบี้ย ${receipt.paymentDetails.interest_rate}%/เดือน)`}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{
               background: 'var(--clr-surface-2)',

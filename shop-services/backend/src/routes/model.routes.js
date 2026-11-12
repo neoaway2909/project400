@@ -53,14 +53,16 @@ router.post('/', async (req, res, next) => {
       return res.status(422).json({ success: false, message: 'brand_id, model_name, storage, color, selling_price, cost_price are required' });
     }
     if (!(await inventoryRepo.isDbOnline())) {
+      const b = store.brands.find(x => x.id === Number(brand_id)) || {};
       const nm = {
         id: store.deviceModels.length + 1,
         brand_id: Number(brand_id),
+        brand_name: b.name || '',
         model_name,
         storage,
         color,
         selling_price: Number(selling_price),
-        cost_price: Number(cost_price),
+        cost_price: Number(cost_price || selling_price),
         sku: sku || null,
       };
       store.deviceModels.push(nm);
@@ -74,5 +76,40 @@ router.post('/', async (req, res, next) => {
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err) { next(err); }
 });
+
+// PUT / PATCH /api/v1/models/:id
+async function handleUpdateModel(req, res, next) {
+  try {
+    const modelId = Number(req.params.id);
+    const { selling_price, cost_price, model_name, storage, color } = req.body || {};
+    if (!(await inventoryRepo.isDbOnline())) {
+      const dm = store.deviceModels.find(x => x.id === modelId);
+      if (!dm) return res.status(404).json({ success: false, message: 'Model not found' });
+      if (selling_price !== undefined) dm.selling_price = Number(selling_price);
+      if (cost_price !== undefined) dm.cost_price = Number(cost_price);
+      if (model_name !== undefined) dm.model_name = String(model_name).trim();
+      if (storage !== undefined) dm.storage = String(storage).trim();
+      if (color !== undefined) dm.color = String(color).trim();
+      const b = store.brands.find(x => x.id === dm.brand_id) || {};
+      return res.json({ success: true, data: { ...dm, brand_name: b.name } });
+    }
+    const result = await db.query(
+      `UPDATE device_models
+          SET selling_price = COALESCE($2, selling_price),
+              cost_price = COALESCE($3, cost_price),
+              model_name = COALESCE($4, model_name),
+              storage = COALESCE($5, storage),
+              color = COALESCE($6, color)
+        WHERE id = $1
+        RETURNING *`,
+      [modelId, selling_price ?? null, cost_price ?? null, model_name ?? null, storage ?? null, color ?? null]
+    );
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Model not found' });
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (err) { next(err); }
+}
+
+router.put('/:id', handleUpdateModel);
+router.patch('/:id', handleUpdateModel);
 
 module.exports = router;

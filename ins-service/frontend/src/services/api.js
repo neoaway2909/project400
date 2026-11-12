@@ -167,11 +167,17 @@ async function fetchClaimUsageForImei(imei) {
     const logs = j?.data?.logs || [];
     const claimsMap = new Map();
     for (const l of [...logs].reverse()) {
-      const reason = l.reason || '';
+      const reason = (l.reason || '').trim();
+      if (!reason || reason === 'sync' || /^ซิงค์/.test(reason)) continue;
+
       const ticketMatch = reason.match(/REP-\d{4}-\d+/);
       let key = ticketMatch ? ticketMatch[0] : null;
-      if (!key && l.new_status === 'CLAIM_REPAIR' && !/กำลังดำเนินการซ่อม|อัปเดตสถานะงานซ่อม/.test(reason)) {
-        key = `CLAIM-${l.id || l.changed_at}`;
+      if (key && claimsMap.has('PENDING_UNNAMED_CLAIM') && !claimsMap.has(key)) {
+        const prevCost = claimsMap.get('PENDING_UNNAMED_CLAIM');
+        claimsMap.delete('PENDING_UNNAMED_CLAIM');
+        claimsMap.set(key, prevCost);
+      } else if (!key && l.new_status === 'CLAIM_REPAIR' && /รับแจ้งเคลม|แจ้งเคลม/.test(reason)) {
+        key = 'PENDING_UNNAMED_CLAIM';
       }
       if (!key) continue;
       if (reason.includes('CANCELLED')) {
@@ -433,7 +439,7 @@ async function syncShopInventoryStatus(imei, repairStatus, ticketId, summary, co
     }
     const json = await res.json().catch(() => ({}));
     if (json?.data?.changed === false) {
-      const tempStatus = newDeviceStatus === 'CLAIM_REPAIR' ? 'RESERVED' : 'CLAIM_REPAIR';
+      const tempStatus = newDeviceStatus === 'RESERVED' ? 'IN_STOCK' : 'RESERVED';
       await doPut(tempStatus, 'sync');
       res = await doPut(newDeviceStatus, reason);
     }
