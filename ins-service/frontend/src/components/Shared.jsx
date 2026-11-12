@@ -5,10 +5,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 // ============================================================
 export function Sidebar({ activePage, onNavigate }) {
   const navItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard ภาพรวม', group: 'หลัก' },
-    { id: 'policies', icon: '📋', label: 'รายการกรมธรรม์', group: 'หลัก' },
-    { id: 'verify', icon: '🔍', label: 'ตรวจสอบสิทธิ์ IMEI', group: 'หลัก' },
-    { id: 'packages', icon: '🛡️', label: 'จัดการแพ็กเกจ', group: 'ตั้งค่า' },
+    { id: 'dashboard', label: 'Dashboard ภาพรวม', group: 'หลัก' },
+    { id: 'policies', label: 'รายการกรมธรรม์', group: 'หลัก' },
+    { id: 'repairs', label: 'จัดการงานซ่อม / เคลม', group: 'หลัก' },
+    { id: 'verify', label: 'ตรวจสอบสิทธิ์ IMEI', group: 'หลัก' },
+    { id: 'packages', label: 'จัดการแพ็กเกจ', group: 'ตั้งค่า' },
   ];
 
   const groups = [...new Set(navItems.map(i => i.group))];
@@ -16,7 +17,6 @@ export function Sidebar({ activePage, onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">🛡️</div>
         <div className="logo-text">
           <span className="logo-title">InsureCore™</span>
           <span className="logo-sub">Policy Engine v1.0</span>
@@ -32,7 +32,6 @@ export function Sidebar({ activePage, onNavigate }) {
                 className={`nav-item ${activePage === item.id ? 'active' : ''}`}
                 onClick={() => onNavigate(item.id)}
               >
-                <span className="nav-icon">{item.icon}</span>
                 {item.label}
               </button>
             ))}

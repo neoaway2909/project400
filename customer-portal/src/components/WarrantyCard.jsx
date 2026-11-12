@@ -94,7 +94,6 @@ export default function WarrantyCard({ device, onGoToRepair }) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
             <div>
               <div>สถานะ: สิ้นสุดระยะเวลาคุ้มครองแล้ว (EXPIRED)</div>
               <div style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: '400', marginTop: '2px' }}>
@@ -123,7 +122,6 @@ export default function WarrantyCard({ device, onGoToRepair }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>🔧</span>
             <div>
               <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#78350f' }}>
                 เครื่องกำลังดำเนินการซ่อมอยู่!
@@ -140,7 +138,6 @@ export default function WarrantyCard({ device, onGoToRepair }) {
       {/* Coverage Benefits Section */}
       <div className="glass-section" style={{ marginTop: '20px' }}>
         <div className="section-title">
-          <span>🛡️</span>
           <span>สิทธิประโยชน์และความคุ้มครองที่ได้รับ</span>
         </div>
         <div className="benefit-list">

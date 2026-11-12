@@ -28,21 +28,38 @@ function StockCard({ item }) {
       </div>
       <div className="stock-card-model">{item.model_name}</div>
       <div className="stock-card-spec">{item.storage} · {item.color}</div>
-      {item.sku && (
+      { item.sku && (
         <div style={{ fontSize: '.68rem', color: 'var(--clr-text-subtle)', fontFamily: "'JetBrains Mono', monospace" }}>
           {item.sku}
         </div>
       )}
+      {Array.isArray(item.available_imeis) && item.available_imeis.length > 0 && (
+        <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ fontSize: '.68rem', color: 'var(--clr-text-muted)', fontWeight: 600 }}>
+            เลข IMEI พร้อมขาย:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {item.available_imeis.map(imei => (
+              <span
+                key={imei}
+                style={{
+                  fontSize: '.68rem',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: 'var(--clr-surface-2)',
+                  border: '1px solid var(--clr-border)',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  color: 'var(--clr-text)',
+                }}
+              >
+                {imei}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 8 }}>
         <div className="stock-card-price">{formatPrice(item.selling_price)}</div>
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: `${accentColor}20`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.1rem',
-        }}>
-          📱
-        </div>
       </div>
     </div>
   );
@@ -92,7 +109,7 @@ export default function AvailableStock() {
     <div>
       <div className="page-header">
         <div>
-          <h2>🏪 สินค้าพร้อมขาย (IN_STOCK)</h2>
+          <h2>สินค้าพร้อมขาย (IN_STOCK)</h2>
           <p>รายการโทรศัพท์ที่พร้อมขาย สำหรับระบบ POS</p>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -101,14 +118,14 @@ export default function AvailableStock() {
         </div>
       </div>
 
-      {error && <div className="alert alert-warning mb-4">⚠️ {error}</div>}
+      {error && <div className="alert alert-warning mb-4">{error}</div>}
 
       {/* Filters */}
       <div className="flex gap-3 mb-6" style={{ flexWrap: 'wrap', marginBottom: 24 }}>
         <input
           className="form-control"
           style={{ maxWidth: 280 }}
-          placeholder="🔍 ค้นหารุ่น, ยี่ห้อ, สี..."
+          placeholder="ค้นหารุ่น, ยี่ห้อ, สี..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -124,7 +141,7 @@ export default function AvailableStock() {
       {loading && <LoadingBox text="กำลังโหลดสินค้า..." />}
 
       {!loading && filtered.length === 0 && (
-        <EmptyState icon="📱" text="ไม่พบสินค้าที่ตรงกับเงื่อนไข" />
+        <EmptyState text="ไม่พบสินค้าที่ตรงกับเงื่อนไข" />
       )}
 
       {!loading && filtered.length > 0 && (

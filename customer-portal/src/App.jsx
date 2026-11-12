@@ -2,30 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { fetchCustomerDevice } from './api';
 import WarrantyCard from './components/WarrantyCard';
 import RepairTracker from './components/RepairTracker';
-import ClaimForm from './components/ClaimForm';
 import CenterLocator from './components/CenterLocator';
 
-const DEMO_DEVICES = [
-  { label: 'OPPO Find X7 (หมดอายุ)', imei: '012345678901234' },
-  { label: 'iPhone 15 Pro (กำลังซ่อม)', imei: '358941091234567' },
-  { label: 'S24 Ultra (ประกัน 2 ปี)', imei: '490154203237518' }
-];
-
 export default function App() {
-  const [imeiInput, setImeiInput] = useState('358941091234567');
+  const [imeiInput, setImeiInput] = useState('');
+  const [searchedQuery, setSearchedQuery] = useState('');
   const [device, setDevice] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('warranty'); // 'warranty' | 'repair' | 'claim' | 'centers'
+  const [activeTab, setActiveTab] = useState('warranty'); // 'warranty' | 'repair' | 'centers'
 
-  // Load initial device
+  // Load device if ?imei= is passed from POS QR Code / Link
   useEffect(() => {
-    loadDevice(imeiInput);
+    const params = new URLSearchParams(window.location.search);
+    const urlImei = params.get('imei');
+    if (urlImei) {
+      setImeiInput(urlImei);
+      loadDevice(urlImei);
+    }
   }, []);
 
-  const loadDevice = async (targetImei) => {
-    if (!targetImei) return;
+  const loadDevice = async (targetQuery) => {
+    const q = String(targetQuery || '').trim();
+    if (!q) return;
     setLoading(true);
-    const data = await fetchCustomerDevice(targetImei);
+    setSearchedQuery(q);
+    const data = await fetchCustomerDevice(q);
     setDevice(data);
     setLoading(false);
   };
@@ -35,17 +36,11 @@ export default function App() {
     loadDevice(imeiInput);
   };
 
-  const handleSelectDemo = (imei) => {
-    setImeiInput(imei);
-    loadDevice(imei);
-  };
-
   return (
     <div className="app-container">
       {/* Top Mobile Bar with LINE LIFF integration tag */}
       <header className="top-header">
         <div className="brand-badge">
-          <div className="brand-icon">🛡️</div>
           <div>
             <div className="brand-title">CareShield™</div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
@@ -60,35 +55,21 @@ export default function App() {
         </div>
       </header>
 
-      {/* Quick Search IMEI */}
+      {/* Search IMEI / Policy No */}
       <div className="search-container">
         <form onSubmit={handleSearch} className="search-box">
-          <span style={{ fontSize: '1.1rem' }}>🔍</span>
           <input
             type="text"
             className="search-input"
             value={imeiInput}
             onChange={(e) => setImeiInput(e.target.value)}
-            placeholder="ค้นหาเลขอีมี่ (IMEI), กรมธรรม์, หรือชื่อรุ่น..."
+            placeholder="ค้นหาเลขอีมี่ (IMEI 15 หลัก), เลขกรมธรรม์, หรือชื่อลูกค้า..."
             maxLength="50"
           />
           <button type="submit" className="search-btn">
             ค้นหา
           </button>
         </form>
-      </div>
-
-      {/* Quick Demo Switcher */}
-      <div className="quick-chips">
-        {DEMO_DEVICES.map((d) => (
-          <button
-            key={d.imei}
-            onClick={() => handleSelectDemo(d.imei)}
-            className={`chip-btn ${imeiInput === d.imei ? 'active' : ''}`}
-          >
-            {d.label}
-          </button>
-        ))}
       </div>
 
       {/* Main Tab Content */}
@@ -107,30 +88,39 @@ export default function App() {
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>กำลังตรวจสอบสถานะกับเซิร์ฟเวอร์ประกัน...</div>
             <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
           </div>
+        ) : activeTab === 'centers' ? (
+          <CenterLocator />
         ) : device ? (
           <>
             {activeTab === 'warranty' && (
-              <WarrantyCard 
-                device={device} 
-                onGoToRepair={() => setActiveTab('repair')} 
+              <WarrantyCard
+                device={device}
+                onGoToRepair={() => setActiveTab('repair')}
               />
             )}
 
             {activeTab === 'repair' && (
-              <RepairTracker device={device} />
-            )}
-
-            {activeTab === 'claim' && (
-              <ClaimForm 
-                device={device} 
-                onSubmitSuccess={() => setActiveTab('repair')} 
-              />
-            )}
-
-            {activeTab === 'centers' && (
-              <CenterLocator />
+              <RepairTracker device={device} onRefresh={() => loadDevice(device.imei || imeiInput)} />
             )}
           </>
+        ) : searchedQuery ? (
+          <div style={{
+            margin: '30px 16px',
+            padding: '36px 20px',
+            background: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid #e2e8f0',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow-card)'
+          }}>
+            <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a', marginBottom: '8px' }}>
+              ไม่พบข้อมูลกรมธรรม์
+            </div>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              ไม่พบข้อมูลสำหรับคำค้นหา <span style={{ color: '#b45309', fontWeight: '700' }}>"{searchedQuery}"</span><br />
+              กรุณาตรวจสอบเลขอีมี่ (IMEI 15 หลัก) หรือเลขกรมธรรม์จากใบเสร็จรับเงินอีกครั้ง
+            </div>
+          </div>
         ) : (
           <div style={{
             margin: '30px 16px',
@@ -141,25 +131,11 @@ export default function App() {
             textAlign: 'center',
             boxShadow: 'var(--shadow-card)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔎</div>
             <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a', marginBottom: '8px' }}>
-              ไม่พบข้อมูลกรมธรรม์
+              ตรวจสอบสิทธิ์ประกัน & ติดตามงานซ่อม
             </div>
-            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '20px' }}>
-              ไม่พบข้อมูลสำหรับคำค้นหา <span style={{ color: '#b45309', fontWeight: '700' }}>"{imeiInput}"</span><br />
-              กรุณาตรวจสอบเลขอีมี่ (IMEI 15 หลัก) หรือกดเลือกปุ่มทดสอบด้านบน
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              {DEMO_DEVICES.map((d) => (
-                <button
-                  key={d.imei}
-                  onClick={() => handleSelectDemo(d.imei)}
-                  className="chip-btn"
-                  style={{ fontSize: '0.75rem', padding: '6px 12px' }}
-                >
-                  {d.label}
-                </button>
-              ))}
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              กรุณากรอก <strong>เลข IMEI 15 หลัก</strong>, <strong>เลขที่กรมธรรม์ (POL-...)</strong> หรือ <strong>ชื่อ-นามสกุลผู้ซื้อ</strong> ในช่องค้นหาด้านบน หรือสแกน QR Code จากใบเสร็จหน้าร้านเพื่อดูบัตรรับประกันของคุณ
             </div>
           </div>
         )}
@@ -171,7 +147,6 @@ export default function App() {
           onClick={() => setActiveTab('warranty')}
           className={`nav-item ${activeTab === 'warranty' ? 'active' : ''}`}
         >
-          <span className="nav-icon">🪪</span>
           <span>บัตรประกัน</span>
         </button>
 
@@ -179,23 +154,13 @@ export default function App() {
           onClick={() => setActiveTab('repair')}
           className={`nav-item ${activeTab === 'repair' ? 'active' : ''}`}
         >
-          <span className="nav-icon">🚚</span>
           <span>สถานะงานซ่อม</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('claim')}
-          className={`nav-item ${activeTab === 'claim' ? 'active' : ''}`}
-        >
-          <span className="nav-icon">📝</span>
-          <span>แจ้งเคลม</span>
         </button>
 
         <button
           onClick={() => setActiveTab('centers')}
           className={`nav-item ${activeTab === 'centers' ? 'active' : ''}`}
         >
-          <span className="nav-icon">📍</span>
           <span>ศูนย์บริการ</span>
         </button>
       </nav>

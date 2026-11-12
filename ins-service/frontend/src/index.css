@@ -557,6 +557,7 @@ tbody td {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-xs);
   padding: 10px 20px;
   border-radius: var(--radius-md);

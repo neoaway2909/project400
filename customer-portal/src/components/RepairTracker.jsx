@@ -1,17 +1,16 @@
 import React from 'react';
 
-export default function RepairTracker({ device }) {
+export default function RepairTracker({ device, onRefresh }) {
   const repair = device?.active_repair;
 
   if (!repair) {
     return (
       <div className="glass-section" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📱✨</div>
         <div style={{ fontWeight: '700', fontSize: '1.1rem', marginBottom: '6px' }}>
           ไม่มีรายการส่งซ่อมในขณะนี้
         </div>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          โทรศัพท์ของคุณ (IMEI: {device?.imei || '—'}) กำลังใช้งานได้ตามปกติ หากเครื่องมีปัญหา สามารถกดแจ้งเคลมได้ทันที
+          โทรศัพท์ของคุณ (IMEI: {device?.imei || '—'}) กำลังใช้งานได้ตามปกติ หากเครื่องมีปัญหา สามารถนำเครื่องติดต่อที่หน้าร้าน PhoneShop หรือศูนย์บริการพาร์ทเนอร์เพื่อให้เจ้าหน้าที่เปิดใบแจ้งเคลมได้ทันที
         </div>
         <div style={{
           display: 'inline-block',
@@ -40,17 +39,41 @@ export default function RepairTracker({ device }) {
               {repair.ticket_id}
             </div>
           </div>
-          <span style={{
-            padding: '4px 10px',
-            background: '#fef3c7',
-            border: '1px solid #fde68a',
-            borderRadius: '20px',
-            fontSize: '0.75rem',
-            fontWeight: '700',
-            color: '#92400e'
-          }}>
-            ⚡ กำลังซ่อมแซม
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                style={{
+                  padding: '4px 10px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                อัปเดตสถานะ
+              </button>
+            )}
+            <span style={{
+              padding: '4px 10px',
+              background: repair.status === 'REPAIR_COMPLETED' || repair.status === 'DELIVERED' ? '#dcfce7' : '#fef3c7',
+              border: `1px solid ${repair.status === 'REPAIR_COMPLETED' || repair.status === 'DELIVERED' ? '#86efac' : '#fde68a'}`,
+              borderRadius: '20px',
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              color: repair.status === 'REPAIR_COMPLETED' || repair.status === 'DELIVERED' ? '#166534' : '#92400e'
+            }}>
+              {repair.status === 'REPAIR_COMPLETED'
+                ? 'ซ่อมเสร็จพร้อมรับเครื่อง'
+                : repair.status === 'DELIVERED'
+                ? 'ส่งคืนร้านแล้ว'
+                : 'กำลังดำเนินการซ่อม'}
+            </span>
+          </div>
         </div>
 
         <div style={{ fontSize: '0.9rem', marginBottom: '14px', color: 'var(--text-main)' }}>
@@ -83,7 +106,6 @@ export default function RepairTracker({ device }) {
       {/* Step by Step Live Timeline */}
       <div className="glass-section">
         <div className="section-title">
-          <span>🕒</span>
           <span>ขั้นตอนการดำเนินงานแบบเรียลไทม์</span>
         </div>
 
@@ -115,7 +137,6 @@ export default function RepairTracker({ device }) {
       {/* Service Center Details */}
       <div className="glass-section">
         <div className="section-title">
-          <span>📍</span>
           <span>ข้อมูลศูนย์บริการที่ดูแลเครื่องของคุณ</span>
         </div>
         <div style={{ fontSize: '0.92rem', fontWeight: '700', marginBottom: '4px', color: '#0f172a' }}>
@@ -125,7 +146,7 @@ export default function RepairTracker({ device }) {
           {repair.center_address}
         </div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-          👨‍🔧 ผู้รับผิดชอบ: <strong style={{ color: '#0f172a' }}>{repair.technician_name}</strong>
+          ผู้รับผิดชอบ: <strong style={{ color: '#0f172a' }}>{repair.technician_name}</strong>
         </div>
 
         <a 
@@ -146,7 +167,6 @@ export default function RepairTracker({ device }) {
             boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)'
           }}
         >
-          <span>📞</span>
           <span>โทรติดต่อศูนย์ซ่อม: {repair.center_phone}</span>
         </a>
       </div>

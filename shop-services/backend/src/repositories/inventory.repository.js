@@ -1,5 +1,21 @@
 'use strict';
 const db = require('../database/db');
+const store = require('../database/memoryStore');
+
+// Helper: test if PostgreSQL is reachable (cached after first failure)
+let useMemory = process.env.USE_MEMORY_DB === 'true' || false;
+
+async function isDbOnline() {
+  if (useMemory) return false;
+  try {
+    await db.query('SELECT 1');
+    return true;
+  } catch {
+    useMemory = true;
+    console.log('[InventoryRepo] PostgreSQL unreachable – switching to In-Memory Store');
+    return false;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Repository: device_imeis
@@ -9,6 +25,38 @@ const db = require('../database/db');
  * Find a single IMEI with full detail (model, brand, lot)
  */
 const findImeiByCode = async (imei) => {
+  if (!(await isDbOnline())) {
+    const di = store.deviceImeis.find(d => d.imei === imei);
+    if (!di) return null;
+    const dm = store.deviceModels.find(m => m.id === di.model_id) || {};
+    const b  = store.brands.find(br => br.id === dm.brand_id) || {};
+    const sl = store.stockLots.find(l => l.id === di.lot_id) || {};
+    const sup = store.suppliers.find(s => s.id === sl.supplier_id) || {};
+    return {
+      imei: di.imei,
+      status: di.status,
+      purchase_price: di.purchase_price,
+      note: di.note || null,
+      received_at: di.received_at,
+      sold_at: di.sold_at,
+      created_at: di.received_at,
+      updated_at: di.sold_at || di.received_at,
+      model_id: dm.id,
+      model_name: dm.model_name,
+      storage: dm.storage,
+      color: dm.color,
+      selling_price: dm.selling_price,
+      sku: dm.sku,
+      image_url: dm.image_url || null,
+      brand_id: b.id,
+      brand_name: b.name,
+      lot_id: sl.id || null,
+      lot_number: sl.lot_number || null,
+      lot_received_date: sl.received_date || null,
+      supplier_name: sup.name || null,
+    };
+  }
+
   const sql = `
     SELECT
       di.imei,
@@ -47,6 +95,12 @@ const findImeiByCode = async (imei) => {
  * Get status log history for an IMEI
  */
 const findStatusLogs = async (imei) => {
+  if (!(await isDbOnline())) {
+    return store.imeiStatusLogs
+      .filter(l => l.imei === imei)
+      .sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+  }
+
   const sql = `
     SELECT id, old_status, new_status, changed_by, reason, changed_at
     FROM imei_status_logs
@@ -61,6 +115,38 @@ const findStatusLogs = async (imei) => {
  * Get available stock (IN_STOCK), grouped by model + brand
  */
 const getAvailableStock = async (filters = {}) => {
+  if (!(await isDbOnline())) {
+    const grouped = [];
+    for (const dm of store.deviceModels) {
+      const b = store.brands.find(br => br.id === dm.brand_id);
+      if (!b) continue;
+      if (filters.brandId && b.id !== filters.brandId) continue;
+      if (filters.modelId && dm.id !== filters.modelId) continue;
+
+      const availableImeis = store.deviceImeis
+        .filter(di => di.model_id === dm.id && di.status === 'IN_STOCK')
+        .map(di => di.imei)
+        .sort();
+
+      if (availableImeis.length > 0) {
+        grouped.push({
+          model_id: dm.id,
+          model_name: dm.model_name,
+          storage: dm.storage,
+          color: dm.color,
+          selling_price: dm.selling_price,
+          sku: dm.sku,
+          image_url: dm.image_url || null,
+          brand_id: b.id,
+          brand_name: b.name,
+          in_stock_count: availableImeis.length,
+          available_imeis: availableImeis,
+        });
+      }
+    }
+    return grouped;
+  }
+
   const conditions = ["di.status = 'IN_STOCK'"];
   const params     = [];
   let   idx        = 1;
@@ -85,7 +171,8 @@ const getAvailableStock = async (filters = {}) => {
       dm.image_url,
       b.id             AS brand_id,
       b.name           AS brand_name,
-      COUNT(di.imei)::int AS in_stock_count
+      COUNT(di.imei)::int AS in_stock_count,
+      ARRAY_AGG(di.imei ORDER BY di.imei) AS available_imeis
     FROM device_imeis di
     JOIN device_models dm ON dm.id = di.model_id
     JOIN brands        b  ON b.id  = dm.brand_id
@@ -102,6 +189,26 @@ const getAvailableStock = async (filters = {}) => {
  * Get full inventory summary by status
  */
 const getInventorySummary = async () => {
+  if (!(await isDbOnline())) {
+    return store.deviceModels.map(dm => {
+      const b = store.brands.find(br => br.id === dm.brand_id) || {};
+      const items = store.deviceImeis.filter(di => di.model_id === dm.id);
+      return {
+        brand_name: b.name,
+        model_name: dm.model_name,
+        storage: dm.storage,
+        color: dm.color,
+        selling_price: dm.selling_price,
+        in_stock: items.filter(i => i.status === 'IN_STOCK').length,
+        reserved: items.filter(i => i.status === 'RESERVED').length,
+        sold: items.filter(i => i.status === 'SOLD').length,
+        claim_repair: items.filter(i => i.status === 'CLAIM_REPAIR').length,
+        defective: items.filter(i => i.status === 'DEFECTIVE').length,
+        total: items.length,
+      };
+    });
+  }
+
   const sql = `
     SELECT
       b.name  AS brand_name,
@@ -129,6 +236,18 @@ const getInventorySummary = async () => {
  * Get dashboard KPI counts
  */
 const getDashboardKpis = async () => {
+  if (!(await isDbOnline())) {
+    const items = store.deviceImeis;
+    return {
+      in_stock: items.filter(i => i.status === 'IN_STOCK').length,
+      reserved: items.filter(i => i.status === 'RESERVED').length,
+      sold: items.filter(i => i.status === 'SOLD').length,
+      claim_repair: items.filter(i => i.status === 'CLAIM_REPAIR').length,
+      defective: items.filter(i => i.status === 'DEFECTIVE').length,
+      total: items.length,
+    };
+  }
+
   const sql = `
     SELECT
       COUNT(*) FILTER (WHERE status = 'IN_STOCK')     AS in_stock,
@@ -147,6 +266,37 @@ const getDashboardKpis = async () => {
  * Insert a single IMEI record
  */
 const insertImei = async (client, { imei, modelId, lotId, purchasePrice, note }) => {
+  if (!client || useMemory) {
+    const existing = store.deviceImeis.find(d => d.imei === imei);
+    if (existing) {
+      const err = new Error(`IMEIs already exist in database: ${imei}`);
+      err.statusCode = 409;
+      err.duplicates = [imei];
+      throw err;
+    }
+    const row = {
+      imei,
+      model_id: Number(modelId),
+      lot_id: lotId || null,
+      status: 'IN_STOCK',
+      purchase_price: purchasePrice || null,
+      note: note || null,
+      received_at: new Date().toISOString(),
+      sold_at: null,
+    };
+    store.deviceImeis.push(row);
+    store.imeiStatusLogs.push({
+      id: store.getNextLogId(),
+      imei,
+      old_status: null,
+      new_status: 'IN_STOCK',
+      changed_by: 'staff',
+      reason: note || 'รับเข้าสต็อก',
+      changed_at: row.received_at,
+    });
+    return row;
+  }
+
   const sql = `
     INSERT INTO device_imeis (imei, model_id, lot_id, purchase_price, note, status)
     VALUES ($1, $2, $3, $4, $5, 'IN_STOCK')
@@ -160,6 +310,38 @@ const insertImei = async (client, { imei, modelId, lotId, purchasePrice, note })
  * Update IMEI status and append log
  */
 const updateImeiStatus = async (imei, newStatus, changedBy, reason) => {
+  if (!(await isDbOnline())) {
+    let item = store.deviceImeis.find(d => d.imei === imei);
+    if (!item) {
+      item = {
+        imei,
+        model_id: 1,
+        lot_id: 1,
+        status: 'SOLD',
+        purchase_price: 34000,
+        note: 'ซิงค์จากระบบประกันภัย',
+        received_at: new Date().toISOString(),
+        sold_at: new Date().toISOString(),
+      };
+      store.deviceImeis.push(item);
+    }
+    const oldStatus = item.status;
+    item.status = newStatus;
+    if (newStatus === 'SOLD' && !item.sold_at) {
+      item.sold_at = new Date().toISOString();
+    }
+    store.imeiStatusLogs.push({
+      id: store.getNextLogId(),
+      imei,
+      old_status: oldStatus,
+      new_status: newStatus,
+      changed_by: changedBy || 'system',
+      reason: reason || null,
+      changed_at: new Date().toISOString(),
+    });
+    return { imei, oldStatus, newStatus, changed: true, data: item };
+  }
+
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
@@ -205,6 +387,22 @@ const updateImeiStatus = async (imei, newStatus, changedBy, reason) => {
  * Upsert a stock lot and increment total_units
  */
 const upsertLot = async (client, { lotNumber, supplierId, receivedDate, note, createdBy }) => {
+  if (!client || useMemory) {
+    const existing = store.stockLots.find(l => l.lot_number === lotNumber);
+    if (existing) return existing;
+    const newLot = {
+      id: store.stockLots.length + 1,
+      lot_number: lotNumber,
+      supplier_id: supplierId || 1,
+      received_date: receivedDate,
+      note: note || null,
+      created_by: createdBy || 'staff',
+      total_units: 0,
+    };
+    store.stockLots.push(newLot);
+    return newLot;
+  }
+
   const existing = await (client || db).query(
     'SELECT id FROM stock_lots WHERE lot_number = $1', [lotNumber]
   );
@@ -222,6 +420,12 @@ const upsertLot = async (client, { lotNumber, supplierId, receivedDate, note, cr
  * Increment lot total_units count
  */
 const incrementLotUnits = async (client, lotId, count) => {
+  if (!client || useMemory) {
+    const lot = store.stockLots.find(l => l.id === lotId);
+    if (lot) lot.total_units += count;
+    return;
+  }
+
   await (client || db).query(
     'UPDATE stock_lots SET total_units = total_units + $1 WHERE id = $2',
     [count, lotId]
@@ -229,6 +433,7 @@ const incrementLotUnits = async (client, lotId, count) => {
 };
 
 module.exports = {
+  isDbOnline,
   findImeiByCode,
   findStatusLogs,
   getAvailableStock,

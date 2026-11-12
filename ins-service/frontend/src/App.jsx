@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Sidebar, Topbar, ToastContainer, useToast } from './components/Shared'
 import DashboardPage from './components/DashboardPage'
 import PoliciesPage from './components/PoliciesPage'
+import RepairsPage from './components/RepairsPage'
 import VerifyPage from './components/VerifyPage'
 import PackagesPage from './components/PackagesPage'
 import './index.css'
@@ -9,6 +10,7 @@ import './index.css'
 const PAGE_TITLES = {
   dashboard: 'Dashboard ภาพรวม',
   policies:  'รายการกรมธรรม์ทั้งหมด',
+  repairs:   'จัดการงานเคลม & สถานะการซ่อม',
   verify:    'ตรวจสอบสิทธิ์ประกัน (IMEI Verify)',
   packages:  'จัดการแพ็กเกจประกันภัย',
 };
@@ -20,7 +22,8 @@ function App() {
   const renderPage = () => {
     switch (page) {
       case 'dashboard': return <DashboardPage />;
-      case 'policies':  return <PoliciesPage />;
+      case 'policies':  return <PoliciesPage addToast={addToast} />;
+      case 'repairs':   return <RepairsPage addToast={addToast} />;
       case 'verify':    return <VerifyPage addToast={addToast} />;
       case 'packages':  return <PackagesPage addToast={addToast} />;
       default:          return <DashboardPage />;

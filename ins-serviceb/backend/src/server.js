@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3001;
 // ============================================================
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));

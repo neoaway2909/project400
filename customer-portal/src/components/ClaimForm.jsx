@@ -1,43 +1,60 @@
 import React, { useState } from 'react';
-import { PARTNER_CENTERS } from '../api';
+import { PARTNER_CENTERS, submitCustomerClaim } from '../api';
 
 export default function ClaimForm({ device, onSubmitSuccess }) {
-  const isExpired = device?.policy_status === 'EXPIRED';
+  const isExpired = device?.policy_status === 'EXPIRED' || device?.is_valid === false;
   const [symptomType, setSymptomType] = useState('SCREEN');
   const [description, setDescription] = useState('');
-  const [selectedCenter, setSelectedCenter] = useState('CTR-001');
+  const [selectedCenter, setSelectedCenter] = useState(PARTNER_CENTERS[0].id);
   const [contactPhone, setContactPhone] = useState(device?.customer_phone || '');
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedTicket, setSubmittedTicket] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMsg('');
 
-    setTimeout(() => {
+    try {
+      const ticket = await submitCustomerClaim({
+        imei: device?.imei,
+        policyNo: device?.policy_no,
+        symptomType,
+        description,
+        centerId: selectedCenter,
+        contactPhone,
+      });
+      setSubmittedTicket(ticket);
+    } catch (err) {
+      setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการส่งคำขอเคลม');
+    } finally {
       setSubmitting(false);
-      setSubmitted(true);
-      if (onSubmitSuccess) onSubmitSuccess();
-    }, 1200);
+    }
   };
 
-  if (submitted) {
+  if (submittedTicket) {
     return (
       <div className="glass-section" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🎉✅</div>
         <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--accent-emerald)', marginBottom: '8px' }}>
-          บันทึกการแจ้งเคลมล่วงหน้าสำเร็จ!
+          เปิดใบงานแจ้งเคลมส่งซ่อมสำเร็จ!
         </div>
-        <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          รหัสคิวแจ้งซ่อม: <strong style={{ color: '#b45309' }}>CLM-2026-9812</strong><br />
-          คุณสามารถนำเครื่องเข้าติดต่อที่ <strong>{PARTNER_CENTERS.find(c => c.id === selectedCenter)?.name}</strong> ได้ทันที โดยแสดงเลขอีมี่นี้ต่อช่าง
+        <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>
+          หมายเลขตั๋วงานซ่อมจริง: <strong style={{ color: '#b45309', fontSize: '1rem' }}>{submittedTicket.ticket_id}</strong><br />
+          ส่งเรื่องเข้าสู่คิวของ <strong>{submittedTicket.center_name || PARTNER_CENTERS.find(c => c.id === selectedCenter)?.name}</strong> เรียบร้อยแล้ว<br />
+          <span style={{ fontSize: '0.78rem', color: '#059669' }}>
+            (ช่างในระบบศูนย์ซ่อม http://localhost:5174 สามารถรับงานและอัปเดตสถานะได้ทันที)
+          </span>
         </div>
-        <button 
-          onClick={() => setSubmitted(false)}
+        <button
+          onClick={() => {
+            setSubmittedTicket(null);
+            if (onSubmitSuccess) onSubmitSuccess();
+          }}
           className="search-btn"
           style={{ width: '100%', padding: '12px' }}
         >
-          กลับสู่หน้าหลัก
+          ไปหน้าติดตามสถานะงานซ่อมแบบ Real-time
         </button>
       </div>
     );
@@ -46,9 +63,23 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
   return (
     <div className="glass-section">
       <div className="section-title">
-        <span>📝</span>
-        <span>แจ้งส่งซ่อม / เคลมประกันออนไลน์</span>
+        <span>แจ้งส่งซ่อม / เคลมประกันออนไลน์ (เชื่อมตรงศูนย์ซ่อม)</span>
       </div>
+
+      {errorMsg && (
+        <div style={{
+          marginBottom: '14px',
+          padding: '12px 14px',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: 'var(--radius-sm)',
+          color: '#991b1b',
+          fontSize: '0.82rem',
+          fontWeight: '600'
+        }}>
+          {errorMsg}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Device Quick Info */}
@@ -62,7 +93,7 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
           <span style={{ color: 'var(--text-subtle)' }}>เครื่องที่ขอรับบริการ: </span>
           <strong style={{ color: '#0f172a' }}>{device?.device_model}</strong>
           <div style={{ color: '#b45309', fontFamily: 'monospace', fontWeight: '600', marginTop: '2px' }}>
-            IMEI: {device?.imei}
+            IMEI: {device?.imei} · กรมธรรม์: {device?.policy_no}
           </div>
         </div>
 
@@ -73,10 +104,10 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {[
-              { id: 'SCREEN', label: 'หน้าจอแตก / ร้าว', icon: '📱' },
-              { id: 'WATER', label: 'เครื่องตกน้ำ / โดนน้ำ', icon: '💧' },
-              { id: 'BATTERY', label: 'แบตเตอรี่เสื่อม / บวม', icon: '🔋' },
-              { id: 'OTHER', label: 'เปิดไม่ติด / อาการอื่น', icon: '⚠️' }
+              { id: 'SCREEN', label: 'หน้าจอแตก / ร้าว' },
+              { id: 'WATER', label: 'เครื่องตกน้ำ / โดนน้ำ' },
+              { id: 'BATTERY', label: 'แบตเตอรี่เสื่อม / บวม' },
+              { id: 'OTHER', label: 'อุบัติเหตุ / อาการอื่น' }
             ].map((cat) => (
               <button
                 type="button"
@@ -98,7 +129,6 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
                   boxShadow: symptomType === cat.id ? '0 2px 6px rgba(245, 158, 11, 0.15)' : 'none'
                 }}
               >
-                <span>{cat.icon}</span>
                 <span>{cat.label}</span>
               </button>
             ))}
@@ -192,30 +222,29 @@ export default function ClaimForm({ device, onSubmitSuccess }) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <span style={{ fontSize: '1.2rem' }}>🚫</span>
             <div>
               <div>ไม่สามารถส่งเคลมประกันได้</div>
               <div style={{ fontSize: '0.75rem', fontWeight: '400', color: '#b91c1c' }}>
-                กรมธรรม์ของอุปกรณ์เครื่องนี้หมดอายุความคุ้มครองแล้ว (EXPIRED)
+                กรมธรรม์ของอุปกรณ์เครื่องนี้หมดอายุหรือใช้สิทธิ์ครบแล้ว ({device?.policy_status})
               </div>
             </div>
           </div>
         )}
 
-        <button 
+        <button
           type="submit"
           disabled={submitting || isExpired}
           className="search-btn"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
+          style={{
+            width: '100%',
+            padding: '12px',
             marginTop: '6px',
             opacity: isExpired ? 0.5 : 1,
             cursor: isExpired ? 'not-allowed' : 'pointer',
             backgroundColor: isExpired ? '#94a3b8' : undefined
           }}
         >
-          {isExpired ? 'ไม่สามารถแจ้งเคลมได้ (กรมธรรม์หมดอายุ)' : submitting ? 'กำลังส่งข้อมูลเปิดเคส...' : 'ยืนยันการแจ้งเคลมส่งซ่อม'}
+          {isExpired ? 'ไม่สามารถแจ้งเคลมได้ (กรมธรรม์หมดอายุ)' : submitting ? 'กำลังส่งข้อมูลเปิดเคสไปยังศูนย์ซ่อม...' : 'ยืนยันการแจ้งเคลมส่งซ่อม'}
         </button>
       </form>
     </div>

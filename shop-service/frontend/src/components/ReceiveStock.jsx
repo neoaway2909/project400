@@ -126,12 +126,12 @@ export default function ReceiveStock() {
         ? { success: true, inserted: validImeis.length, data: validImeis.map(i => ({ imei: i, status: 'IN_STOCK' })) }
         : await api.receiveStock(payload);
 
-      setSubmitResult({ type: 'success', message: `✅ บันทึกสำเร็จ! รับเข้าสต็อก ${res.inserted} เครื่อง` });
+      setSubmitResult({ type: 'success', message: `บันทึกสำเร็จ! รับเข้าสต็อก ${res.inserted} เครื่อง` });
       setImeiList([]);
       setFormData(f => ({ ...f, lotNumber: '', purchasePrice: '', note: '' }));
     } catch (e) {
       const detail = e.data?.duplicates?.join(', ');
-      setSubmitResult({ type: 'error', message: `❌ ${e.message}${detail ? ` (${detail})` : ''}` });
+      setSubmitResult({ type: 'error', message: `${e.message}${detail ? ` (${detail})` : ''}` });
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +144,7 @@ export default function ReceiveStock() {
     <div>
       <div className="page-header">
         <div>
-          <h2>📥 รับเครื่องเข้าคลัง</h2>
+          <h2>รับเครื่องเข้าคลัง</h2>
           <p>สแกน IMEI หลาย IMEI พร้อมกัน รองรับ Barcode Scanner</p>
         </div>
       </div>
@@ -154,15 +154,11 @@ export default function ReceiveStock() {
         <div style={{ flex: '1 1 400px' }}>
           {/* Scanner Input */}
           <div className={`scanner-zone ${scanZoneClass}`} style={{ marginBottom: 20 }}>
-            <span className="scanner-icon">
-              {scanState === 'ok' ? '✅' : scanState === 'fail' ? '❌' : '📷'}
-            </span>
             <h3 style={{ marginBottom: 6, fontWeight: 700 }}>สแกน IMEI</h3>
             <p style={{ fontSize: '.82rem', color: 'var(--clr-text-muted)', marginBottom: 18 }}>
               ต่อ Barcode Scanner แล้วยิงสแกน หรือพิมพ์เลข IMEI 15 หลัก
             </p>
             <div className="scanner-input-wrapper">
-              <span className="scanner-input-icon">🔍</span>
               <input
                 ref={scanRef}
                 className={`form-control form-control-lg ${scanState === 'ok' ? 'success' : scanState === 'fail' ? 'error' : ''}`}
@@ -241,7 +237,6 @@ export default function ReceiveStock() {
 
               {selectedModel && (
                 <div className="alert alert-info" style={{ padding: '10px 14px' }}>
-                  <span>💰</span>
                   <span style={{ fontSize: '.82rem' }}>
                     ราคาขาย: <strong>{Number(selectedModel.selling_price).toLocaleString('th-TH')} ฿</strong>
                   </span>
@@ -294,7 +289,6 @@ export default function ReceiveStock() {
 
           {submitResult && (
             <div className={`alert alert-${submitResult.type === 'success' ? 'success' : 'error'}`}>
-              <span style={{ flexShrink: 0 }}>{submitResult.type === 'success' ? '✅' : '❌'}</span>
               <span>{submitResult.message}</span>
             </div>
           )}
@@ -304,7 +298,7 @@ export default function ReceiveStock() {
             onClick={handleSubmit}
             disabled={submitting || validCount === 0 || !formData.modelId}
           >
-            {submitting ? '⏳ กำลังบันทึก...' : `📥 บันทึกรับเข้าสต็อก (${validCount} เครื่อง)`}
+            {submitting ? 'กำลังบันทึก...' : `บันทึกรับเข้าสต็อก (${validCount} เครื่อง)`}
           </button>
         </div>
       </div>

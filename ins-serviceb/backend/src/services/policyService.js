@@ -72,7 +72,7 @@ class PolicyService {
       claim_count: 0,
       max_claim_count: pkg.max_claim_count,
       status: 'ACTIVE',
-      e_warranty_url: `${process.env.WARRANTY_BASE_URL || 'https://warranty.example.com/card'}/${policyNo}`,
+      e_warranty_url: `${process.env.WARRANTY_BASE_URL || 'http://localhost:5176'}/?imei=${imei}`,
       purchased_at: purchasedDate.toISOString(),
       created_at: now.toISOString()
     };
@@ -126,13 +126,17 @@ class PolicyService {
       policy_no: policy.policy_no,
       imei: policy.imei,
       device_model: policy.device_model,
+      device_price: policy.device_price,
       policy_status: currentStatus,
       store_id: policy.store_id,
       customer_name: policy.customer_name,
+      customer_phone: policy.customer_phone,
+      customer_email: policy.customer_email,
       coverage_details: {
         package_name: policy.package_name,
         coverage_start: policy.coverage_start,
         expires_at: policy.coverage_end,
+        max_coverage_amount: policy.max_coverage_amount,
         remaining_claim_amount: policy.remaining_claim_amount,
         claim_count: policy.claim_count,
         max_claim_count: policy.max_claim_count,
@@ -140,6 +144,21 @@ class PolicyService {
       },
       validation_reason: isValid ? null : this._getInvalidReason(currentStatus, isInPeriod, hasRemainingAmount, hasRemainingCount)
     };
+  }
+
+  // ----------------------------------------------------------
+  // หักวงเงินและเพิ่มจำนวนครั้งเคลมเมื่อรับงานซ่อม/ซ่อมเสร็จ
+  // ----------------------------------------------------------
+  async recordClaimUsage(policyNo, coveredAmount) {
+    const policy = mockPolicies.find(p => p.policy_no === policyNo);
+    if (!policy) return null;
+    const deduct = Math.max(0, Number(coveredAmount || 0));
+    policy.remaining_claim_amount = Math.max(0, Number(policy.remaining_claim_amount || 0) - deduct);
+    policy.claim_count = Number(policy.claim_count || 0) + 1;
+    if (policy.remaining_claim_amount <= 0 || policy.claim_count >= policy.max_claim_count) {
+      policy.status = 'CLAIMED_OUT';
+    }
+    return policy;
   }
 
   // ----------------------------------------------------------

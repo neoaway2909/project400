@@ -53,13 +53,11 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="stat-grid">
         <div className="stat-card blue">
-          <div className="stat-icon blue">📋</div>
           <div className="stat-label">กรมธรรม์ทั้งหมด</div>
           <div className="stat-value">{stats?.total_policies?.toLocaleString()}</div>
           <div className="stat-sub">รายการในระบบ</div>
         </div>
         <div className="stat-card green">
-          <div className="stat-icon green">✅</div>
           <div className="stat-label">กำลังคุ้มครอง</div>
           <div className="stat-value" style={{ color: 'var(--accent-green)' }}>
             {stats?.active_policies?.toLocaleString()}
@@ -67,7 +65,6 @@ export default function DashboardPage() {
           <div className="stat-sub">ACTIVE policies</div>
         </div>
         <div className="stat-card red">
-          <div className="stat-icon red">⏰</div>
           <div className="stat-label">หมดอายุแล้ว</div>
           <div className="stat-value" style={{ color: 'var(--accent-red)' }}>
             {stats?.expired_policies?.toLocaleString()}
@@ -75,7 +72,6 @@ export default function DashboardPage() {
           <div className="stat-sub">EXPIRED policies</div>
         </div>
         <div className="stat-card purple">
-          <div className="stat-icon purple">🏷️</div>
           <div className="stat-label">แพ็กเกจที่ใช้งาน</div>
           <div className="stat-value" style={{ color: 'var(--accent-purple)' }}>3</div>
           <div className="stat-sub">Package types</div>
@@ -86,7 +82,7 @@ export default function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
         {/* Monthly Bar Chart */}
         <div className="card">
-          <div className="card-title">📈 ยอดเปิดกรมธรรม์รายเดือน (6 เดือนล่าสุด)</div>
+          <div className="card-title">ยอดเปิดกรมธรรม์รายเดือน (6 เดือนล่าสุด)</div>
           <div className="chart-container">
             {stats?.monthly_data?.map((m, i) => (
               <div key={i} className="chart-bar-wrap">
@@ -105,7 +101,7 @@ export default function DashboardPage() {
 
         {/* Top Packages */}
         <div className="card">
-          <div className="card-title">🥇 แพ็กเกจยอดนิยม</div>
+          <div className="card-title">แพ็กเกจยอดนิยม</div>
           {stats?.top_packages?.map((pkg, i) => {
             const maxPkg = stats.top_packages[0]?.count || 1;
             const colors = ['var(--accent-blue)', 'var(--accent-green)', 'var(--accent-purple)'];
@@ -132,7 +128,7 @@ export default function DashboardPage() {
 
       {/* Top Devices */}
       <div className="card">
-        <div className="card-title">📱 ยี่ห้อโทรศัพท์ที่ทำประกันมากที่สุด</div>
+        <div className="card-title">ยี่ห้อโทรศัพท์ที่ทำประกันมากที่สุด</div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {stats?.top_devices?.map((d, i) => {
             const colors = ['blue', 'green', 'purple', 'red', 'blue'];
@@ -148,9 +144,6 @@ export default function DashboardPage() {
                 background: bgColors[i],
                 border: `1px solid ${bgColors[i].replace('0.1', '0.3')}`
               }}>
-                <span style={{ fontSize: 22 }}>
-                  {d.brand === 'iPhone' ? '🍎' : d.brand === 'Samsung' ? '🌟' : d.brand === 'OPPO' ? '🟢' : d.brand === 'Google' ? '🔵' : '📱'}
-                </span>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: textColors[i] }}>{d.brand}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{d.count} เครื่อง</div>

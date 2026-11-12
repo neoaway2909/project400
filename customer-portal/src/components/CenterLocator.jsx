@@ -5,7 +5,6 @@ export default function CenterLocator() {
   return (
     <div className="glass-section">
       <div className="section-title">
-        <span>📍</span>
         <span>เครือข่ายศูนย์ซ่อมพาร์ทเนอร์ทางการ</span>
       </div>
 
@@ -16,7 +15,6 @@ export default function CenterLocator() {
       <div>
         {PARTNER_CENTERS.map((c) => (
           <div key={c.id} className="center-card">
-            <div className="center-icon">🏬</div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#0f172a' }}>
@@ -33,8 +31,8 @@ export default function CenterLocator() {
                 {c.address}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-                <span>🕒 {c.hours}</span>
-                <span style={{ color: 'var(--accent-emerald)', fontWeight: '600' }}>⚡ {c.speed}</span>
+                <span>{c.hours}</span>
+                <span style={{ color: 'var(--accent-emerald)', fontWeight: '600' }}>{c.speed}</span>
               </div>
 
               <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
@@ -55,7 +53,7 @@ export default function CenterLocator() {
                     boxShadow: '0 2px 6px rgba(245, 158, 11, 0.12)'
                   }}
                 >
-                  <span>📞</span> โทร {c.tel}
+                  โทร {c.tel}
                 </a>
               </div>
             </div>

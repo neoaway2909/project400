@@ -7,14 +7,15 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 /* ── Status Transition Buttons ─────────────────────────────── */
 const TRANSITIONS = {
-  IN_STOCK:     [{ to: 'RESERVED', label: 'จอง',       icon: '🔒', cls: 'btn-secondary' },
-                 { to: 'SOLD',     label: 'ขายแล้ว',   icon: '✅', cls: 'btn-success' },
-                 { to: 'CLAIM_REPAIR', label: 'ส่งซ่อม', icon: '🔧', cls: 'btn-secondary' }],
-  RESERVED:     [{ to: 'IN_STOCK', label: 'คืนคลัง',   icon: '↩️', cls: 'btn-secondary' },
-                 { to: 'SOLD',     label: 'ขายแล้ว',   icon: '✅', cls: 'btn-success' }],
-  CLAIM_REPAIR: [{ to: 'IN_STOCK', label: 'ซ่อมเสร็จ', icon: '✔️', cls: 'btn-success' },
-                 { to: 'DEFECTIVE', label: 'เสียถาวร', icon: '❌', cls: 'btn-danger' }],
-  SOLD:         [],
+  IN_STOCK:     [{ to: 'RESERVED', label: 'จอง',       cls: 'btn-secondary' },
+                 { to: 'SOLD',     label: 'ขายแล้ว',   cls: 'btn-success' },
+                 { to: 'CLAIM_REPAIR', label: 'ส่งซ่อม', cls: 'btn-secondary' }],
+  RESERVED:     [{ to: 'IN_STOCK', label: 'คืนคลัง',   cls: 'btn-secondary' },
+                 { to: 'SOLD',     label: 'ขายแล้ว',   cls: 'btn-success' }],
+  CLAIM_REPAIR: [{ to: 'SOLD',     label: 'ซ่อมเสร็จ (ส่งคืนลูกค้า)', cls: 'btn-success' },
+                 { to: 'IN_STOCK', label: 'ซ่อมเสร็จ (คืนคลัง)',     cls: 'btn-secondary' },
+                 { to: 'DEFECTIVE', label: 'เสียถาวร', cls: 'btn-danger' }],
+  SOLD:         [{ to: 'CLAIM_REPAIR', label: 'ส่งเคลม/ซ่อม', cls: 'btn-primary' }],
   DEFECTIVE:    [],
 };
 
@@ -88,9 +89,9 @@ export default function ImeiSearch() {
           ]}
         : (await api.getImeiDetail(result.device.imei)).data;
       setResult(fresh);
-      setStatusMsg({ type: 'success', text: `✅ เปลี่ยนสถานะเป็น ${newStatus} สำเร็จ` });
+      setStatusMsg({ type: 'success', text: `เปลี่ยนสถานะเป็น ${newStatus} สำเร็จ` });
     } catch (e) {
-      setStatusMsg({ type: 'error', text: `❌ ${e.message}` });
+      setStatusMsg({ type: 'error', text: e.message });
     } finally {
       setUpdating(false);
     }
@@ -103,7 +104,7 @@ export default function ImeiSearch() {
     <div>
       <div className="page-header">
         <div>
-          <h2>🔍 ค้นหาประวัติ IMEI</h2>
+          <h2>ค้นหาประวัติ IMEI</h2>
           <p>ค้นหาข้อมูลเครื่อง สถานะปัจจุบัน และประวัติการเปลี่ยนแปลง</p>
         </div>
       </div>
@@ -113,14 +114,10 @@ export default function ImeiSearch() {
         <div className="card-body">
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <span style={{
-                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                fontSize: '1.2rem', pointerEvents: 'none',
-              }}>🔍</span>
               <input
                 ref={inputRef}
                 className={`form-control form-control-lg ${error ? 'error' : ''}`}
-                style={{ paddingLeft: 46, fontFamily: "'JetBrains Mono', monospace" }}
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
                 placeholder="กรอกเลข IMEI 15 หลัก..."
                 value={query}
                 maxLength={15}
@@ -135,11 +132,11 @@ export default function ImeiSearch() {
               disabled={loading || query.length !== 15}
               style={{ minWidth: 120 }}
             >
-              {loading ? '⏳' : '🔍 ค้นหา'}
+              {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
             </button>
           </div>
 
-          {error && <p className="form-error" style={{ marginTop: 8 }}>⚠️ {error}</p>}
+          {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
           <p className="form-hint" style={{ marginTop: 6 }}>
             กรอกตัวเลข IMEI 15 หลัก แล้วกด Enter หรือคลิก "ค้นหา" — ลอง: <code style={{ fontSize: '.78rem', background: 'var(--clr-surface-3)', padding: '1px 6px', borderRadius: 4 }}>351234567890001</code>
           </p>
@@ -186,34 +183,6 @@ export default function ImeiSearch() {
               <DetailRow label="วันที่รับสินค้า"  value={formatDate(device.received_at)} />
               <DetailRow label="วันที่ขาย"        value={device.sold_at ? formatDate(device.sold_at) : null} />
             </div>
-
-            {/* Status Actions */}
-            {transitions.length > 0 && (
-              <div className="card">
-                <div className="card-header">
-                  <span className="card-title">เปลี่ยนสถานะ</span>
-                </div>
-                <div className="card-body">
-                  {statusMsg && (
-                    <div className={`alert alert-${statusMsg.type === 'success' ? 'success' : 'error'}`} style={{ marginBottom: 14 }}>
-                      {statusMsg.text}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {transitions.map(t => (
-                      <button
-                        key={t.to}
-                        className={`btn ${t.cls}`}
-                        onClick={() => handleStatusChange(t.to)}
-                        disabled={updating}
-                      >
-                        {t.icon} {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* RIGHT: Status Timeline */}
@@ -257,11 +226,11 @@ export default function ImeiSearch() {
                             </div>
                             {log.reason && (
                               <p style={{ fontSize: '.78rem', color: 'var(--clr-text-muted)', marginTop: 3 }}>
-                                📝 {log.reason}
+                                {log.reason}
                               </p>
                             )}
                             <p style={{ fontSize: '.72rem', color: 'var(--clr-text-subtle)', marginTop: 4 }}>
-                              👤 {log.changed_by} · {formatDate(log.changed_at)}
+                              {log.changed_by} · {formatDate(log.changed_at)}
                             </p>
                           </div>
                         </div>

@@ -1,9 +1,9 @@
 import React from 'react';
 
 /**
- * Validate IMEI format & Luhn algorithm on client side
+ * Validate IMEI format (15 digits) on client side
  */
-export const validateImeiClient = (imei) => {
+export const validateImeiClient = (imei, strict = false) => {
   const cleaned = String(imei || '').trim();
   if (!cleaned) {
     return { valid: false, error: 'กรุณากรอกเลขอีมี่ (IMEI)' };
@@ -12,18 +12,20 @@ export const validateImeiClient = (imei) => {
     return { valid: false, error: 'IMEI ต้องเป็นตัวเลข 15 หลักเท่านั้น' };
   }
 
-  // Luhn algorithm check
-  const digits = cleaned.split('').map(Number);
-  const sum = digits.reduceRight((acc, digit, idx) => {
-    if ((digits.length - 1 - idx) % 2 === 1) {
-      const doubled = digit * 2;
-      return acc + (doubled > 9 ? doubled - 9 : doubled);
-    }
-    return acc + digit;
-  }, 0);
+  if (strict) {
+    // Luhn algorithm check
+    const digits = cleaned.split('').map(Number);
+    const sum = digits.reduceRight((acc, digit, idx) => {
+      if ((digits.length - 1 - idx) % 2 === 1) {
+        const doubled = digit * 2;
+        return acc + (doubled > 9 ? doubled - 9 : doubled);
+      }
+      return acc + digit;
+    }, 0);
 
-  if (sum % 10 !== 0) {
-    return { valid: false, error: 'เลขอีมี่ไม่ถูกต้องตามมาตรฐาน (Luhn Checksum ล้มเหลว)' };
+    if (sum % 10 !== 0) {
+      return { valid: false, error: 'เลขอีมี่ไม่ถูกต้องตามมาตรฐาน (Luhn Checksum ล้มเหลว)' };
+    }
   }
 
   return { valid: true, error: null };
@@ -115,7 +117,6 @@ export function EmptyState({ text, title, message }) {
       padding: '40px 20px',
       color: 'var(--clr-text-muted)'
     }}>
-      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📭</div>
       {title && <div style={{ fontWeight: 600, color: 'var(--clr-text)', marginBottom: '4px' }}>{title}</div>}
       <div style={{ fontSize: '.88rem' }}>{text || message || 'ไม่มีข้อมูลที่จะแสดง'}</div>
     </div>

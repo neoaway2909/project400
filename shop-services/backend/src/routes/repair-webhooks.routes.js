@@ -2,6 +2,8 @@
 
 const { Router } = require('express');
 const { query } = require('../database/db');
+const store = require('../database/memoryStore');
+const inventoryRepo = require('../repositories/inventory.repository');
 
 const router = Router();
 const ALLOWED_EVENTS = new Set(['REPAIR_COMPLETED', 'DELIVERED']);
@@ -44,6 +46,52 @@ router.post('/', async (req, res, next) => {
   }
 
   try {
+    if (!(await inventoryRepo.isDbOnline())) {
+      store.repairWebhookEvents = store.repairWebhookEvents || [];
+      if (store.repairWebhookEvents.some(e => e.event_id === eventId)) {
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          event_id: eventId,
+        });
+      }
+      store.repairWebhookEvents.push({
+        event_id: eventId,
+        event_type: eventType,
+        ticket_id: ticketId,
+        policy_no: policyNo,
+        imei,
+        center_name: centerName,
+        status_updated_at: statusUpdatedAt,
+        details: details || {},
+        received_at: new Date().toISOString(),
+      });
+
+      // Append repair status update to IMEI status logs if device is in shop inventory
+      const device = store.deviceImeis.find(d => d.imei === imei);
+      if (device) {
+        const oldSt = device.status;
+        if (eventType === 'REPAIR_COMPLETED' || eventType === 'DELIVERED') {
+          device.status = 'SOLD';
+        }
+        store.imeiStatusLogs.push({
+          id: store.getNextLogId(),
+          imei,
+          old_status: oldSt,
+          new_status: device.status,
+          changed_by: centerName || 'repair_center',
+          reason: `อัปเดตงานซ่อม ${ticketId}: ${eventType}${details?.repair_summary ? ` (${details.repair_summary})` : ''}`,
+          changed_at: statusUpdatedAt,
+        });
+      }
+
+      return res.status(202).json({
+        success: true,
+        accepted: true,
+        event_id: eventId,
+      });
+    }
+
     const result = await query(
       `INSERT INTO repair_webhook_events (
         event_id, event_type, ticket_id, policy_no, imei, center_name,

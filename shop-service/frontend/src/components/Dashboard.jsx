@@ -6,10 +6,9 @@ import { StatusBadge, formatPrice, LoadingBox, EmptyState } from './shared';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 /* ── KPI Card ──────────────────────────────────────────── */
-function KpiCard({ icon, value, label, colorClass }) {
+function KpiCard({ value, label, colorClass }) {
   return (
     <div className={`kpi-card ${colorClass}`}>
-      <span className="kpi-icon">{icon}</span>
       <div className="kpi-value">{value}</div>
       <div className="kpi-label">{label}</div>
     </div>
@@ -19,7 +18,7 @@ function KpiCard({ icon, value, label, colorClass }) {
 /* ── Brand summary mini chart ──────────────────────────── */
 function BrandBar({ brand, items }) {
   const totalInStock = items.reduce((s, r) => s + Number(r.in_stock || 0), 0);
-  const totalAll     = items.reduce((s, r) => s + Number(r.total   || 0), 0);
+  const totalAll     = items.reduce((s, r) => s + Number(r.in_stock || 0) + Number(r.sold || 0) + Number(r.claim_repair || 0), 0);
   const pct          = totalAll > 0 ? Math.round((totalInStock / totalAll) * 100) : 0;
   return (
     <div style={{ marginBottom: 16 }}>
@@ -80,25 +79,27 @@ export default function Dashboard() {
     <div>
       <div className="page-header">
         <div>
-          <h2>📊 Dashboard สรุปสต็อก</h2>
+          <h2>Dashboard สรุปสต็อก</h2>
           <p>ภาพรวมสินค้าคงคลังทั้งหมดในระบบ</p>
         </div>
       </div>
 
       {error && (
         <div className="alert alert-warning mb-4">
-          <span>⚠️</span> {error}
+          {error}
         </div>
       )}
 
       {/* KPI Grid */}
       <div className="kpi-grid">
-        <KpiCard icon="📱" value={kpis.in_stock}     label="มีในคลัง"   colorClass="green"  />
-        <KpiCard icon="🔒" value={kpis.reserved}     label="จองแล้ว"   colorClass="blue"   />
-        <KpiCard icon="✅" value={kpis.sold}         label="ขายแล้ว"   colorClass="purple" />
-        <KpiCard icon="🔧" value={kpis.claim_repair} label="ส่งซ่อม"   colorClass="yellow" />
-        <KpiCard icon="❌" value={kpis.defective}    label="เสียหาย"   colorClass="red"    />
-        <KpiCard icon="📦" value={kpis.total}        label="ทั้งหมด"   colorClass="blue"   />
+        <KpiCard value={kpis.in_stock}     label="มีในคลัง"   colorClass="green"  />
+        <KpiCard value={kpis.sold}         label="ขายแล้ว"   colorClass="purple" />
+        <KpiCard value={kpis.claim_repair} label="ส่งซ่อม"   colorClass="yellow" />
+        <KpiCard
+          value={Number(kpis.in_stock || 0) + Number(kpis.sold || 0) + Number(kpis.claim_repair || 0)}
+          label="ทั้งหมด"
+          colorClass="blue"
+        />
       </div>
 
       <div className="flex gap-4" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -128,7 +129,6 @@ export default function Dashboard() {
                   <th>ความจุ / สี</th>
                   <th>ราคา</th>
                   <th>มีในคลัง</th>
-                  <th>จอง</th>
                   <th>ขายแล้ว</th>
                   <th>ซ่อม</th>
                   <th>รวม</th>
@@ -136,7 +136,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {breakdown.length === 0
-                  ? <tr><td colSpan={8}><EmptyState text="ไม่มีข้อมูลสินค้า" /></td></tr>
+                  ? <tr><td colSpan={7}><EmptyState text="ไม่มีข้อมูลสินค้า" /></td></tr>
                   : breakdown.map((row, i) => (
                     <tr key={i}>
                       <td>
@@ -153,10 +153,11 @@ export default function Dashboard() {
                       <td>
                         <span style={{ color: 'var(--clr-success-400)', fontWeight: 700 }}>{row.in_stock}</span>
                       </td>
-                      <td><span style={{ color: 'var(--clr-info-400)' }}>{row.reserved}</span></td>
                       <td><span style={{ color: 'var(--clr-text-muted)' }}>{row.sold}</span></td>
                       <td><span style={{ color: 'var(--clr-warning-400)' }}>{row.claim_repair}</span></td>
-                      <td style={{ fontWeight: 600 }}>{row.total}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {Number(row.in_stock || 0) + Number(row.sold || 0) + Number(row.claim_repair || 0)}
+                      </td>
                     </tr>
                   ))
                 }

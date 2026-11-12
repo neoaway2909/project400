@@ -2,6 +2,7 @@
 const { validateImei, validateImeiBatch } = require('../utils/imei.validator');
 const inventoryRepo = require('../repositories/inventory.repository');
 const db            = require('../database/db');
+const store         = require('../database/memoryStore');
 
 const VALID_STATUSES = ['IN_STOCK', 'RESERVED', 'SOLD', 'CLAIM_REPAIR', 'DEFECTIVE'];
 
@@ -23,8 +24,8 @@ const receiveStock = async ({
   purchasePrice, // number - optional
   createdBy,   // string   - optional
 }) => {
-  // 1. Validate all IMEIs
-  const validationResults = validateImeiBatch(imeis, false); // strict Luhn: off by default
+  // 1. Validate all IMEIs (15-digit numeric format + uniqueness)
+  const validationResults = validateImeiBatch(imeis, false);
   const invalid = validationResults.filter(r => !r.valid);
   if (invalid.length > 0) {
     const err = new Error('One or more IMEIs failed validation');
@@ -39,6 +40,43 @@ const receiveStock = async ({
     const err = new Error('Duplicate IMEIs found in request');
     err.statusCode = 422;
     throw err;
+  }
+
+  // Check if DB is online; if not, use in-memory store
+  if (!(await inventoryRepo.isDbOnline())) {
+    const existingDupes = uniqueImeis.filter(imei => store.deviceImeis.some(d => d.imei === imei));
+    if (existingDupes.length > 0) {
+      const err = new Error(`IMEIs already exist in database: ${existingDupes.join(', ')}`);
+      err.statusCode = 409;
+      err.duplicates = existingDupes;
+      throw err;
+    }
+
+    let lotId = null;
+    if (lotNumber) {
+      const lot = await inventoryRepo.upsertLot(null, {
+        lotNumber, supplierId, receivedDate: receivedDate || new Date().toISOString().slice(0, 10),
+        note, createdBy,
+      });
+      lotId = lot.id;
+    }
+
+    const inserted = [];
+    for (const imei of uniqueImeis) {
+      const row = await inventoryRepo.insertImei(null, { imei, modelId, lotId, purchasePrice, note });
+      inserted.push(row);
+    }
+
+    if (lotId) {
+      await inventoryRepo.incrementLotUnits(null, lotId, inserted.length);
+    }
+
+    return {
+      success: true,
+      inserted: inserted.length,
+      lotId,
+      data: inserted,
+    };
   }
 
   const client = await db.getClient();

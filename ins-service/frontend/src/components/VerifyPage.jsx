@@ -55,21 +55,13 @@ export default function VerifyPage({ addToast }) {
     const res = await createPolicy(payload);
     setCreating(false);
     if (res?.success) {
-      addToast(`✅ สร้างกรมธรรม์ ${res.policy_no} สำเร็จ!`, 'success');
+      addToast(`สร้างกรมธรรม์ ${res.policy_no} สำเร็จ!`, 'success');
       setShowCreateForm(false);
       setImei(form.imei);
     } else {
-      addToast(`❌ ${res?.message || 'เกิดข้อผิดพลาด'}`, 'error');
+      addToast(`${res?.message || 'เกิดข้อผิดพลาด'}`, 'error');
     }
   };
-
-  // Quick test IMEIs
-  const quickTests = [
-    { label: 'iPhone 15 Pro (ACTIVE)', imei: '358941091234567' },
-    { label: 'Samsung S24 (ACTIVE)', imei: '490154203237518' },
-    { label: 'OPPO (EXPIRED)', imei: '012345678901234' },
-    { label: 'ไม่มีในระบบ', imei: '999999999999999' },
-  ];
 
   return (
     <div className="page-content fade-in">
@@ -80,20 +72,19 @@ export default function VerifyPage({ addToast }) {
           <p className="page-subheading">ค้นหากรมธรรม์และตรวจสอบความคุ้มครองด้วยเลขอีมี่</p>
         </div>
         <button className="btn btn-primary" onClick={handleOpenCreate}>
-          ➕ เปิดกรมธรรม์ใหม่
+          เปิดกรมธรรม์ใหม่
         </button>
       </div>
 
       {/* Search Box */}
       <div className="card mb-lg">
-        <div className="card-title">🔍 ตรวจสอบสิทธิ์ด้วยเลข IMEI</div>
+        <div className="card-title">ตรวจสอบสิทธิ์ด้วยเลข IMEI</div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <div className="search-box" style={{ flex: 1 }}>
-            <span className="search-icon">📱</span>
             <input
               id="imei-input"
               className="form-input"
-              style={{ paddingLeft: '36px', fontSize: '15px', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em' }}
+              style={{ fontSize: '15px', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em' }}
               placeholder="กรอก IMEI 15 หลัก เช่น 358941091234567"
               value={imei}
               maxLength={15}
@@ -105,9 +96,9 @@ export default function VerifyPage({ addToast }) {
             className="btn btn-primary"
             onClick={handleVerify}
             disabled={loading}
-            style={{ minWidth: '140px' }}
+            style={{ minWidth: '140px', justifyContent: 'center' }}
           >
-            {loading ? <><span className="spinner" />กำลังค้นหา...</> : '🔎 ตรวจสอบ'}
+            {loading ? <><span className="spinner" />กำลังค้นหา...</> : 'ตรวจสอบ'}
           </button>
         </div>
 
@@ -117,33 +108,15 @@ export default function VerifyPage({ addToast }) {
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)',
             color: 'var(--accent-red)', fontSize: '13px'
           }}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
-
-        {/* Quick Test Buttons */}
-        <div style={{ marginTop: '12px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '8px' }}>ทดสอบด่วน:</span>
-          {quickTests.map(q => (
-            <button
-              key={q.imei}
-              className="btn btn-ghost btn-sm"
-              style={{ marginRight: '6px', marginTop: '4px', fontSize: '11px' }}
-              onClick={() => { setImei(q.imei); setResult(null); }}
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Verification Result */}
       {result && (
         <div className={`verify-result ${result.is_valid ? 'valid' : 'invalid'} fade-in`}>
           <div className="verify-header">
-            <div className={`verify-icon ${result.is_valid ? 'valid' : 'invalid'}`}>
-              {result.is_valid ? '✅' : '❌'}
-            </div>
             <div>
               <div className="verify-title">
                 {result.is_valid ? 'มีสิทธิ์รับการซ่อม' : (result.error_code === 'POLICY_NOT_FOUND' ? 'ไม่พบกรมธรรม์' : 'ไม่มีสิทธิ์รับการซ่อม')}
@@ -153,7 +126,7 @@ export default function VerifyPage({ addToast }) {
               </div>
               {result.validation_reason && (
                 <div style={{ fontSize: '12px', color: 'var(--accent-yellow)', marginTop: '4px' }}>
-                  ⚠️ เหตุผล: {result.validation_reason}
+                  เหตุผล: {result.validation_reason}
                 </div>
               )}
             </div>
@@ -188,7 +161,7 @@ export default function VerifyPage({ addToast }) {
               {result.coverage_details && (
                 <div style={{ marginTop: '16px', padding: '16px', borderRadius: 'var(--radius-md)', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    ℹ️ รายละเอียดความคุ้มครอง
+                    รายละเอียดความคุ้มครอง
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     {result.coverage_details.package_name}
@@ -248,10 +221,10 @@ export default function VerifyPage({ addToast }) {
           {!result.success && result.error_code === 'POLICY_NOT_FOUND' && (
             <div style={{ marginTop: '12px', padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.05)' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                📋 {result.message}
+                {result.message}
               </p>
               <button className="btn btn-primary btn-sm" onClick={handleOpenCreate}>
-                ➕ เปิดกรมธรรม์ใหม่สำหรับเลขนี้
+                เปิดกรมธรรม์ใหม่สำหรับเลขนี้
               </button>
             </div>
           )}
@@ -263,7 +236,7 @@ export default function VerifyPage({ addToast }) {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowCreateForm(false)}>
           <div className="modal fade-in" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">➕ เปิดกรมธรรม์ใหม่</h2>
+              <h2 className="modal-title">เปิดกรมธรรม์ใหม่</h2>
               <button className="modal-close" onClick={() => setShowCreateForm(false)}>✕</button>
             </div>
 
@@ -340,7 +313,7 @@ export default function VerifyPage({ addToast }) {
                   ยกเลิก
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={creating}>
-                  {creating ? <><span className="spinner" /> กำลังสร้าง...</> : '✅ สร้างกรมธรรม์'}
+                  {creating ? <><span className="spinner" /> กำลังสร้าง...</> : 'สร้างกรมธรรม์'}
                 </button>
               </div>
             </form>

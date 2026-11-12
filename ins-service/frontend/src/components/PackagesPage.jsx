@@ -48,21 +48,21 @@ export default function PackagesPage({ addToast }) {
     });
     setSaving(false);
     if (updated) {
-      addToast('✅ อัปเดตแพ็กเกจสำเร็จ', 'success');
+      addToast('อัปเดตแพ็กเกจสำเร็จ', 'success');
       setEditTarget(null);
       load();
     } else {
-      addToast('❌ เกิดข้อผิดพลาดในการบันทึก', 'error');
+      addToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
     }
   };
 
   const packageColors = ['blue', 'green', 'purple'];
   const coverageTypeMap = {
-    SCREEN_CRACK: { icon: '💔', label: 'จอแตก', color: 'var(--accent-blue)' },
-    WATER_DAMAGE: { icon: '💧', label: 'ตกน้ำ', color: 'var(--accent-cyan)' },
-    ACCIDENTAL:   { icon: '⚡', label: 'อุบัติเหตุ', color: 'var(--accent-yellow)' },
-    THEFT:        { icon: '🔒', label: 'โจรกรรม', color: 'var(--accent-purple)' },
-    FULL_COVERAGE:{ icon: '🛡️', label: 'ครบทุกอย่าง', color: 'var(--accent-green)' }
+    SCREEN_CRACK: { label: 'จอแตก', color: 'var(--accent-blue)' },
+    WATER_DAMAGE: { label: 'ตกน้ำ', color: 'var(--accent-cyan)' },
+    ACCIDENTAL:   { label: 'อุบัติเหตุ', color: 'var(--accent-yellow)' },
+    THEFT:        { label: 'โจรกรรม', color: 'var(--accent-purple)' },
+    FULL_COVERAGE:{ label: 'ครบทุกอย่าง', color: 'var(--accent-green)' }
   };
 
   if (loading) return (
@@ -105,10 +105,10 @@ export default function PackagesPage({ addToast }) {
               {/* Meta Stats */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                 {[
-                  ['💰 วงเงินสูงสุด', `฿${Number(pkg.max_coverage_amount).toLocaleString()}`],
-                  ['🔢 เคลมได้สูงสุด', `${pkg.max_claim_count} ครั้ง`],
-                  ['📅 ระยะคุ้มครอง', `${pkg.coverage_months} เดือน`],
-                  ['🔗 กฎย่อย', `${pkg.coverage_rules?.length || 0} รายการ`]
+                  ['วงเงินสูงสุด', `฿${Number(pkg.max_coverage_amount).toLocaleString()}`],
+                  ['เคลมได้สูงสุด', `${pkg.max_claim_count} ครั้ง`],
+                  ['ระยะคุ้มครอง', `${pkg.coverage_months} เดือน`],
+                  ['กฎย่อย', `${pkg.coverage_rules?.length || 0} รายการ`]
                 ].map(([label, value]) => (
                   <div key={label} style={{
                     padding: '8px 10px', borderRadius: 'var(--radius-sm)',
@@ -127,7 +127,7 @@ export default function PackagesPage({ addToast }) {
                     ความคุ้มครองย่อย
                   </div>
                   {pkg.coverage_rules.map((r, ri) => {
-                    const ct = coverageTypeMap[r.coverage_type] || { icon: '📌', label: r.coverage_type, color: 'var(--text-secondary)' };
+                    const ct = coverageTypeMap[r.coverage_type] || { label: r.coverage_type, color: 'var(--text-secondary)' };
                     return (
                       <div key={ri} style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
@@ -135,7 +135,6 @@ export default function PackagesPage({ addToast }) {
                         background: 'rgba(255,255,255,0.03)', marginBottom: '6px',
                         border: '1px solid rgba(255,255,255,0.05)'
                       }}>
-                        <span style={{ fontSize: '16px' }}>{ct.icon}</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '12px', color: ct.color, fontWeight: 600 }}>{r.rule_name}</div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
@@ -152,7 +151,7 @@ export default function PackagesPage({ addToast }) {
 
               <div className="package-actions">
                 <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => handleEdit(pkg)}>
-                  ✏️ แก้ไขแพ็กเกจ
+                  แก้ไขแพ็กเกจ
                 </button>
                 <button
                   className={`btn btn-sm ${pkg.is_active ? 'btn-danger' : 'btn-ghost'}`}
@@ -162,7 +161,7 @@ export default function PackagesPage({ addToast }) {
                     load();
                   }}
                 >
-                  {pkg.is_active ? '🔕 ปิด' : '🔔 เปิด'}
+                  {pkg.is_active ? 'ปิด' : 'เปิด'}
                 </button>
               </div>
             </div>
@@ -174,7 +173,7 @@ export default function PackagesPage({ addToast }) {
       <Modal
         isOpen={!!editTarget}
         onClose={() => setEditTarget(null)}
-        title={`✏️ แก้ไขแพ็กเกจ: ${editTarget?.package_code}`}
+        title={`แก้ไขแพ็กเกจ: ${editTarget?.package_code}`}
       >
         {editTarget && (
           <form onSubmit={handleSave}>
@@ -231,7 +230,7 @@ export default function PackagesPage({ addToast }) {
                 ยกเลิก
               </button>
               <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={saving}>
-                {saving ? <><span className="spinner" /> กำลังบันทึก...</> : '💾 บันทึกการเปลี่ยนแปลง'}
+                {saving ? <><span className="spinner" /> กำลังบันทึก...</> : 'บันทึกการเปลี่ยนแปลง'}
               </button>
             </div>
           </form>

@@ -1,6 +1,8 @@
 'use strict';
 const { Router } = require('express');
 const db         = require('../database/db');
+const store      = require('../database/memoryStore');
+const inventoryRepo = require('../repositories/inventory.repository');
 
 const router = Router();
 
@@ -8,6 +10,14 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const { brandId } = req.query;
+    if (!(await inventoryRepo.isDbOnline())) {
+      let list = store.deviceModels.map(dm => {
+        const b = store.brands.find(x => x.id === dm.brand_id) || {};
+        return { ...dm, brand_name: b.name };
+      });
+      if (brandId) list = list.filter(m => m.brand_id === Number(brandId));
+      return res.json({ success: true, data: list });
+    }
     let sql    = `SELECT dm.*, b.name AS brand_name FROM device_models dm JOIN brands b ON b.id = dm.brand_id`;
     const params = [];
     if (brandId) { sql += ' WHERE dm.brand_id = $1'; params.push(brandId); }
@@ -20,6 +30,12 @@ router.get('/', async (req, res, next) => {
 // GET /api/v1/models/:id
 router.get('/:id', async (req, res, next) => {
   try {
+    if (!(await inventoryRepo.isDbOnline())) {
+      const dm = store.deviceModels.find(x => x.id === Number(req.params.id));
+      if (!dm) return res.status(404).json({ success: false, message: 'Model not found' });
+      const b = store.brands.find(x => x.id === dm.brand_id) || {};
+      return res.json({ success: true, data: { ...dm, brand_name: b.name } });
+    }
     const result = await db.query(
       `SELECT dm.*, b.name AS brand_name FROM device_models dm JOIN brands b ON b.id = dm.brand_id WHERE dm.id = $1`,
       [req.params.id]
@@ -35,6 +51,20 @@ router.post('/', async (req, res, next) => {
     const { brand_id, model_name, storage, color, selling_price, cost_price, sku, description, image_url } = req.body;
     if (!brand_id || !model_name || !storage || !color || !selling_price || !cost_price) {
       return res.status(422).json({ success: false, message: 'brand_id, model_name, storage, color, selling_price, cost_price are required' });
+    }
+    if (!(await inventoryRepo.isDbOnline())) {
+      const nm = {
+        id: store.deviceModels.length + 1,
+        brand_id: Number(brand_id),
+        model_name,
+        storage,
+        color,
+        selling_price: Number(selling_price),
+        cost_price: Number(cost_price),
+        sku: sku || null,
+      };
+      store.deviceModels.push(nm);
+      return res.status(201).json({ success: true, data: nm });
     }
     const result = await db.query(
       `INSERT INTO device_models(brand_id,model_name,storage,color,selling_price,cost_price,sku,description,image_url)

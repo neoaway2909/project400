@@ -4,7 +4,7 @@
   "description": "Inventory & IMEI Management Backend API",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node --watch src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/database/seeder.js"
   },

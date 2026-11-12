@@ -34,11 +34,12 @@ const createPolicySchema = Joi.object({
 const createRepairTicketSchema = Joi.object({
   policy_no: Joi.string().optional(),
   imei: Joi.string().pattern(/^[0-9]{15}$/).required(),
-  center_id: Joi.string().guid().required(),
-  technician_id: Joi.string().guid().optional(),
+  center_id: Joi.string().required(),
+  technician_id: Joi.string().optional(),
   coverage_type: Joi.string().valid('SCREEN_CRACK', 'WATER_DAMAGE', 'ACCIDENTAL', 'FULL_COVERAGE', 'THEFT').optional(),
   defect_symptom: Joi.string().trim().min(1).required(),
   estimated_cost: Joi.number().min(0).required(),
+  contact_phone: Joi.string().optional(),
   photos: Joi.array().items(Joi.object({
     photo_url: Joi.string().uri().required(),
     photo_type: Joi.string().valid('BEFORE', 'AFTER', 'DAMAGED_PART').required()
