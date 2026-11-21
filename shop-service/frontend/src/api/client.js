@@ -117,10 +117,33 @@ const insRequest = async (method, path, body) => {
   return data;
 };
 
+function deduplicateOrdersByImei(ordersList = []) {
+  const sorted = [...ordersList].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+  const seenImeis = new Set();
+  const cleaned = [];
+  for (const ord of sorted) {
+    if (!ord) continue;
+    const uniqueItems = [];
+    for (const it of ord.items || []) {
+      const imei = String(it?.imei || '').trim();
+      if (!imei || seenImeis.has(imei)) continue;
+      seenImeis.add(imei);
+      uniqueItems.push(it);
+    }
+    if (uniqueItems.length > 0) {
+      cleaned.push({ ...ord, items: uniqueItems });
+    }
+  }
+  return cleaned;
+}
+
 function readLocalOrders() {
   try {
     const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return deduplicateOrdersByImei(Array.isArray(parsed) ? parsed : []);
   } catch {
     return [];
   }
@@ -130,7 +153,8 @@ export function saveLocalOrder(orderRecord) {
   try {
     const existing = readLocalOrders().filter(o => o.order_id !== orderRecord.order_id);
     existing.unshift(orderRecord);
-    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(existing.slice(0, 200)));
+    const deduped = deduplicateOrdersByImei(existing);
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(deduped.slice(0, 200)));
   } catch (e) {
     console.warn('Could not save order to localStorage:', e);
   }
@@ -250,13 +274,99 @@ async function writeShopStatusLog(imei, targetStatus, changedBy, reason) {
   }
 }
 
+let activeGetOrdersPromise = null;
+
+function parseModelLabel(fullLabel = '') {
+  const str = String(fullLabel || 'สมาร์ทโฟน').trim();
+  const colorMatch = str.match(/\(([^)]+)\)\s*$/);
+  const color = colorMatch ? colorMatch[1].trim() : 'Standard';
+  const withoutColor = colorMatch ? str.slice(0, colorMatch.index).trim() : str;
+  const storageMatch = withoutColor.match(/\b(\d+\s*(?:GB|TB))\b/i);
+  const storage = storageMatch ? storageMatch[1].toUpperCase().replace(/\s+/g, '') : '256GB';
+  const withoutStorage = storageMatch
+    ? (withoutColor.slice(0, storageMatch.index) + ' ' + withoutColor.slice(storageMatch.index + storageMatch[0].length)).replace(/\s+/g, ' ').trim()
+    : withoutColor;
+  const parts = withoutStorage.split(' ');
+  const brand_name = parts[0] || 'Other';
+  const model_name = withoutStorage || str;
+  return { brand_name, model_name, storage, color };
+}
+
 export const api = {
   // Generic HTTP
   get:              (path)       => request('GET', path),
   post:             (path, body) => request('POST', path, body),
 
   // Inventory
-  getSummary:       ()           => request('GET',  '/inventory/summary'),
+  getSummary: async () => {
+    const [sumRes, ordRes] = await Promise.all([
+      request('GET', '/inventory/summary'),
+      api.getOrders().catch(() => ({ data: [] })),
+    ]);
+    const orders = ordRes?.data || [];
+    const soldImeisMap = new Map();
+    let insuredSoldCount = 0;
+    for (const ord of orders) {
+      for (const it of ord.items || []) {
+        if (it?.imei) {
+          soldImeisMap.set(String(it.imei), it);
+          if (it.package_code || it.policy_no) insuredSoldCount++;
+        }
+      }
+    }
+
+    if (sumRes?.data && Array.isArray(sumRes.data.breakdown)) {
+      const breakdown = sumRes.data.breakdown.map(r => ({
+        ...r,
+        in_stock: Number(r.in_stock || 0),
+        sold: 0,
+        claim_repair: Number(r.claim_repair || 0),
+      }));
+
+      for (const [, soldItem] of soldImeisMap.entries()) {
+        const parsed = parseModelLabel(soldItem.model_name);
+        const matchRow = breakdown.find(r => {
+          const fullRowLabel = `${r.brand_name || ''} ${r.model_name || ''} ${r.storage || ''} (${r.color || ''})`.toLowerCase();
+          const itemLabel = String(soldItem.model_name || '').toLowerCase();
+          return (
+            fullRowLabel === itemLabel ||
+            (itemLabel.includes((r.model_name || '').toLowerCase()) &&
+              itemLabel.includes((r.storage || '').toLowerCase()) &&
+              itemLabel.includes((r.color || '').toLowerCase()))
+          );
+        });
+        if (matchRow) {
+          matchRow.sold = Number(matchRow.sold || 0) + 1;
+        } else {
+          breakdown.push({
+            model_id: `custom-${soldItem.imei}`,
+            brand_name: parsed.brand_name,
+            model_name: parsed.model_name,
+            storage: parsed.storage,
+            color: parsed.color,
+            selling_price: Number(soldItem.price || 0),
+            in_stock: 0,
+            sold: 1,
+            claim_repair: 0,
+          });
+        }
+      }
+
+      sumRes.data.breakdown = breakdown;
+      const totalInStock = breakdown.reduce((s, r) => s + Number(r.in_stock || 0), 0);
+      const totalSold = breakdown.reduce((s, r) => s + Number(r.sold || 0), 0);
+      const totalRepair = breakdown.reduce((s, r) => s + Number(r.claim_repair || 0), 0);
+      sumRes.data.kpis = {
+        ...sumRes.data.kpis,
+        in_stock: totalInStock,
+        sold: totalSold,
+        claim_repair: totalRepair,
+        insured_sold: insuredSoldCount,
+        uninsured_sold: Math.max(0, totalSold - insuredSoldCount),
+      };
+    }
+    return sumRes;
+  },
   getAvailableStock: async (params = {}) => {
     const res = await request('GET', `/inventory/available-stock?${new URLSearchParams(params)}`);
     const overrides = readModelOverrides();
@@ -282,58 +392,147 @@ export const api = {
 
   // POS Orders & Claims (with automatic live fallback to Insurance API + localStorage)
   getOrders: async () => {
-    const orderMap = new Map();
+    if (activeGetOrdersPromise) return activeGetOrdersPromise;
 
-    // 1. Local browser orders (instant persistence for POS checkouts)
-    for (const o of readLocalOrders()) {
-      if (o?.order_id) orderMap.set(o.order_id, o);
-    }
+    activeGetOrdersPromise = (async () => {
+      const orderMap = new Map();
 
-    // 2. Shop backend /pos/orders
-    try {
-      const shopRes = await request('GET', '/pos/orders');
-      for (const o of shopRes.data || []) {
-        if (o?.order_id) {
-          const prev = orderMap.get(o.order_id) || {};
-          orderMap.set(o.order_id, {
-            ...prev,
-            ...o,
-            payment_method: prev.payment_method || o.payment_method,
-            payment_details: o.payment_details || prev.payment_details || null,
-          });
-        }
+      // 1. Local browser orders (deduplicated by IMEI)
+      const localOrders = readLocalOrders();
+      for (const o of localOrders) {
+        if (o?.order_id) orderMap.set(o.order_id, o);
       }
-    } catch {
-      // Shop backend may not have reloaded /pos/orders yet — continue to Insurance API
-    }
 
-    // 3. Reconstruct any insured orders from live Insurance API (port 3001)
-    try {
-      const insRes = await insRequest('GET', '/policies?limit=100');
-      const policyOrders = buildOrdersFromPolicies(insRes.items || insRes.data || []);
-      for (const po of policyOrders) {
-        if (!orderMap.has(po.order_id)) {
-          orderMap.set(po.order_id, po);
-        } else {
-          // Enrich existing order items with policy_no if missing
-          const existing = orderMap.get(po.order_id);
-          for (const pItem of po.items || []) {
-            const match = (existing.items || []).find(i => i.imei === pItem.imei);
-            if (match && !match.policy_no && pItem.policy_no) {
-              match.policy_no = pItem.policy_no;
-              match.e_warranty_url = pItem.e_warranty_url;
+      // 2. Shop backend /pos/orders
+      try {
+        const shopRes = await request('GET', '/pos/orders');
+        for (const o of shopRes.data || []) {
+          if (o?.order_id) {
+            const prev = orderMap.get(o.order_id) || {};
+            orderMap.set(o.order_id, {
+              ...prev,
+              ...o,
+              payment_method: prev.payment_method || o.payment_method,
+              payment_details: o.payment_details || prev.payment_details || null,
+            });
+          }
+        }
+      } catch {
+        // Shop backend may not have reloaded /pos/orders yet — continue to Insurance API
+      }
+
+      // 3. Reconstruct any insured orders from live Insurance API (port 3001) and sync local insured orders back to Insurance API if backend restarted
+      try {
+        const insRes = await insRequest('GET', '/policies?limit=100');
+        const rawPolicies = insRes.items || insRes.data || [];
+
+        // Deduplicate live policies by IMEI
+        const policyByImei = new Map();
+        for (const p of rawPolicies) {
+          if (!p?.imei) continue;
+          const prev = policyByImei.get(String(p.imei));
+          if (!prev || new Date(p.purchased_at || p.created_at || 0) >= new Date(prev.purchased_at || prev.created_at || 0)) {
+            policyByImei.set(String(p.imei), p);
+          }
+        }
+
+        // Re-sync any local order with a warranty package that was lost when Insurance API restarted
+        for (const localOrd of localOrders) {
+          for (const it of localOrd.items || []) {
+            if (it?.imei && it?.package_code && !policyByImei.has(String(it.imei))) {
+              try {
+                const cleanPhone = String(localOrd.customer_phone || '0812345678').replace(/\D/g, '');
+                const validPhone = /^0[0-9]{9}$/.test(cleanPhone) ? cleanPhone : '0812345678';
+                const createdPol = await insRequest('POST', '/policies', {
+                  store_id: 'SHOP-BKK-01',
+                  order_id: localOrd.order_id,
+                  imei: String(it.imei).trim(),
+                  device_model: it.model_name || 'สมาร์ทโฟน',
+                  device_price: Number(it.price || 0),
+                  package_code: it.package_code,
+                  customer: {
+                    full_name: localOrd.customer_name || 'ลูกค้าหน้าร้าน',
+                    phone_number: validPhone,
+                    email: localOrd.customer_email || 'customer@example.com',
+                  },
+                  purchased_at: localOrd.created_at || new Date().toISOString(),
+                });
+                if (createdPol?.policy_no) {
+                  it.policy_no = createdPol.policy_no;
+                  it.e_warranty_url = createdPol.e_warranty_url || `http://localhost:5176/?imei=${it.imei}`;
+                  policyByImei.set(String(it.imei), createdPol);
+                }
+              } catch {
+                // ignore if already exists
+              }
             }
           }
         }
-      }
-    } catch {
-      // Ignore if Insurance API is unreachable
-    }
 
-    const merged = Array.from(orderMap.values()).sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
-    return { success: true, count: merged.length, data: merged };
+        const dedupedPolicies = Array.from(policyByImei.values());
+        const policyOrders = buildOrdersFromPolicies(dedupedPolicies);
+        for (const po of policyOrders) {
+          if (!orderMap.has(po.order_id)) {
+            orderMap.set(po.order_id, po);
+          } else {
+            const existing = orderMap.get(po.order_id);
+            for (const pItem of po.items || []) {
+              const match = (existing.items || []).find(i => i.imei === pItem.imei);
+              if (match && pItem.policy_no) {
+                match.policy_no = pItem.policy_no;
+                match.e_warranty_url = pItem.e_warranty_url;
+              }
+            }
+          }
+        }
+
+        // Sync policy_no onto any order item matching by IMEI
+        for (const ord of orderMap.values()) {
+          for (const it of ord.items || []) {
+            const pol = policyByImei.get(String(it.imei));
+            if (pol?.policy_no) {
+              it.policy_no = pol.policy_no;
+              it.e_warranty_url = pol.e_warranty_url || `http://localhost:5176/?imei=${it.imei}`;
+            }
+          }
+        }
+      } catch {
+        // Ignore if Insurance API is unreachable
+      }
+
+      // 4. Final deduplication across ALL orders by IMEI (1 unique physical phone = 1 sale order)
+      const merged = deduplicateOrdersByImei(Array.from(orderMap.values()));
+      try {
+        localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(merged.slice(0, 200)));
+      } catch {
+        // ignore
+      }
+
+      // 5. Ensure Shop Inventory status matches actual sold IMEIs
+      const allOrderedImeis = new Set();
+      for (const ord of merged) {
+        for (const it of ord.items || []) {
+          if (it?.imei) allOrderedImeis.add(String(it.imei));
+        }
+      }
+      for (const orphanImei of ['352345678901002', '357890123456003', '358901234567004']) {
+        if (!allOrderedImeis.has(orphanImei)) {
+          request('PUT', `/inventory/imei/${orphanImei}/status`, {
+            status: 'IN_STOCK',
+            changedBy: 'system_sync',
+            reason: 'ซิงค์สต็อกให้ตรงกับประวัติการขายจริง',
+          }).catch(() => {});
+        }
+      }
+
+      return { success: true, count: merged.length, data: merged };
+    })();
+
+    try {
+      return await activeGetOrdersPromise;
+    } finally {
+      activeGetOrdersPromise = null;
+    }
   },
 
   verifyWarranty: async (imei) => {

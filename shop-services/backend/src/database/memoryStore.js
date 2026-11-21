@@ -52,13 +52,13 @@ const deviceImeis = [
 
   // iPhone 15 Pro 256GB Natural (model_id=2)
   { imei: '352345678901001', model_id: 2, lot_id: 1, status: 'IN_STOCK',     purchase_price: 44000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
-  { imei: '352345678901002', model_id: 2, lot_id: 1, status: 'SOLD',         purchase_price: 44000, received_at: '2025-01-10T09:00:00Z', sold_at: '2026-10-15T11:00:00Z' },
+  { imei: '352345678901002', model_id: 2, lot_id: 1, status: 'IN_STOCK',     purchase_price: 44000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
   { imei: '352345678901003', model_id: 2, lot_id: 3, status: 'IN_STOCK',     purchase_price: 44000, received_at: '2025-03-01T09:00:00Z', sold_at: null },
 
   // iPhone 15 128GB Blue (model_id=3)
   { imei: '353456789012001', model_id: 3, lot_id: 1, status: 'IN_STOCK',     purchase_price: 28000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
   { imei: '353456789012002', model_id: 3, lot_id: 1, status: 'IN_STOCK',     purchase_price: 28000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
-  { imei: '353456789012003', model_id: 3, lot_id: 3, status: 'CLAIM_REPAIR', purchase_price: 28000, received_at: '2025-03-01T09:00:00Z', sold_at: null },
+  { imei: '353456789012003', model_id: 3, lot_id: 3, status: 'IN_STOCK',     purchase_price: 28000, received_at: '2025-03-01T09:00:00Z', sold_at: null },
   { imei: '353456789012004', model_id: 3, lot_id: 3, status: 'IN_STOCK',     purchase_price: 28000, received_at: '2025-03-01T09:00:00Z', sold_at: null },
 
   // iPhone 15 256GB Pink (model_id=4)
@@ -82,17 +82,18 @@ const deviceImeis = [
   // Xiaomi 14 (model_id=8)
   { imei: '357890123456001', model_id: 8, lot_id: 4, status: 'IN_STOCK',     purchase_price: 21000, received_at: '2025-04-20T11:00:00Z', sold_at: null },
   { imei: '357890123456002', model_id: 8, lot_id: 4, status: 'IN_STOCK',     purchase_price: 21000, received_at: '2025-04-20T11:00:00Z', sold_at: null },
-  { imei: '357890123456003', model_id: 8, lot_id: 4, status: 'SOLD',         purchase_price: 21000, received_at: '2025-04-20T11:00:00Z', sold_at: '2026-10-19T12:00:00Z' },
+  { imei: '357890123456003', model_id: 8, lot_id: 4, status: 'IN_STOCK',     purchase_price: 21000, received_at: '2025-04-20T11:00:00Z', sold_at: null },
 
   // Redmi Note 13 Pro (model_id=9)
   { imei: '358901234567001', model_id: 9, lot_id: 4, status: 'IN_STOCK',     purchase_price: 7500,  received_at: '2025-04-20T11:00:00Z', sold_at: null },
   { imei: '358901234567002', model_id: 9, lot_id: 4, status: 'IN_STOCK',     purchase_price: 7500,  received_at: '2025-04-20T11:00:00Z', sold_at: null },
   { imei: '358901234567003', model_id: 9, lot_id: 4, status: 'IN_STOCK',     purchase_price: 7500,  received_at: '2025-04-20T11:00:00Z', sold_at: null },
-  { imei: '358901234567004', model_id: 9, lot_id: 4, status: 'SOLD',         purchase_price: 7500,  received_at: '2025-04-20T11:00:00Z', sold_at: '2026-10-22T15:00:00Z' },
+  { imei: '358901234567004', model_id: 9, lot_id: 4, status: 'IN_STOCK',     purchase_price: 7500,  received_at: '2025-04-20T11:00:00Z', sold_at: null },
 
   // OPPO Find X7 (model_id=10)
   { imei: '359012345678001', model_id: 10, lot_id: 4, status: 'IN_STOCK',    purchase_price: 27000, received_at: '2025-04-20T11:00:00Z', sold_at: null },
   { imei: '359012345678002', model_id: 10, lot_id: 4, status: 'IN_STOCK',    purchase_price: 27000, received_at: '2025-04-20T11:00:00Z', sold_at: null },
+  { imei: '012345678901234', model_id: 10, lot_id: 4, status: 'SOLD',        purchase_price: 24000, received_at: '2025-08-25T11:00:00Z', sold_at: '2025-09-01T09:00:00Z' },
 
   // OPPO Reno 11 (model_id=11)
   { imei: '360123456789001', model_id: 11, lot_id: 4, status: 'IN_STOCK',    purchase_price: 11500, received_at: '2025-04-20T11:00:00Z', sold_at: null },
@@ -146,6 +147,17 @@ const orders = [
     payment_status: 'PAID',
     created_at: '2026-10-20T16:00:00Z',
   },
+  {
+    order_id: 'ORD-20250901-0088',
+    customer_id: '00000000-0000-0000-0000-000000000003',
+    customer_name: 'วีระ ขยันทำ',
+    customer_phone: '0621234567',
+    customer_email: 'wira@example.com',
+    total_amount: 29890,
+    payment_method: 'CASH',
+    payment_status: 'PAID',
+    created_at: '2025-09-01T09:00:00Z',
+  },
 ];
 
 const orderItems = [
@@ -166,6 +178,15 @@ const orderItems = [
     price: 44900,
     package_code: 'PKG_FULL_2Y',
     package_price: 4990,
+  },
+  {
+    order_id: 'ORD-20250901-0088',
+    line_no: 1,
+    model_name: 'OPPO Find X7 256GB (Lunar Grey)',
+    imei: '012345678901234',
+    price: 28900,
+    package_code: 'PKG_SCREEN_1Y',
+    package_price: 990,
   },
 ];
 
@@ -191,6 +212,17 @@ const warrantyLogs = [
       e_warranty_url: 'http://localhost:5176/?imei=354567890123003',
     },
     synced_at: '2026-10-20T16:00:05Z',
+  },
+  {
+    order_id: 'ORD-20250901-0088',
+    imei: '012345678901234',
+    policy_no: 'POL-2025-009999',
+    sync_status: 'SUCCESS',
+    response_payload: {
+      policy_no: 'POL-2025-009999',
+      e_warranty_url: 'http://localhost:5176/?imei=012345678901234',
+    },
+    synced_at: '2025-09-01T09:00:05Z',
   },
 ];
 

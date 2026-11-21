@@ -165,12 +165,16 @@ input, select, textarea { font-family: inherit; }
 }
 
 .nav-group-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 800;
+  color: #92400e;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: var(--space-md) var(--space-sm) var(--space-xs);
+  margin: 14px 4px 6px;
+  padding: 7px 12px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.03) 100%);
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 8px 8px 0;
 }
 
 .nav-item {

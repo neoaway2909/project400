@@ -104,38 +104,38 @@ async function apiFetch(path, options = {}) {
 }
 
 export async function fetchDashboardStats() {
-  const res = await apiFetch('/policies/dashboard');
-  if (res?.success) return res.data;
-
-  // Mock fallback
+  const polRes = await fetchPolicies();
+  const list = polRes?.items || [];
   const now = new Date();
-  const active = policyStore.filter(p => p.status === 'ACTIVE').length;
-  const expired = policyStore.filter(p => p.status === 'EXPIRED').length;
+  const active = list.filter(p => p.status === 'ACTIVE').length;
+  const expired = list.filter(p => p.status === 'EXPIRED').length;
+  const claimedOut = list.filter(p => p.status === 'CLAIMED_OUT').length;
   const months = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const label = d.toLocaleString('th-TH', { month: 'short', year: '2-digit' });
-    const count = policyStore.filter(p => {
-      const c = new Date(p.created_at);
+    const count = list.filter(p => {
+      const c = new Date(p.created_at || p.purchased_at);
       return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
     }).length;
     months.push({ month: label, count });
   }
   const deviceCount = {};
-  policyStore.forEach(p => {
-    const brand = p.device_model.split(' ')[0];
+  list.forEach(p => {
+    const brand = (p.device_model || 'อื่นๆ').split(' ')[0];
     deviceCount[brand] = (deviceCount[brand] || 0) + 1;
   });
   const pkgCount = {};
-  policyStore.forEach(p => {
-    pkgCount[p.package_name] = (pkgCount[p.package_name] || 0) + 1;
+  list.forEach(p => {
+    const name = p.package_name || p.package_code || 'ประกันมาตรฐาน';
+    pkgCount[name] = (pkgCount[name] || 0) + 1;
   });
   return {
-    total_policies: policyStore.length,
+    total_policies: list.length,
     active_policies: active,
     expired_policies: expired,
     void_policies: 0,
-    claimed_out_policies: 0,
+    claimed_out_policies: claimedOut,
     monthly_data: months,
     top_devices: Object.entries(deviceCount).map(([brand, count]) => ({ brand, count })).sort((a,b)=>b.count-a.count),
     top_packages: Object.entries(pkgCount).map(([name, count]) => ({ name, count })).sort((a,b)=>b.count-a.count)
@@ -209,9 +209,27 @@ async function fetchClaimUsageForImei(imei) {
 }
 
 export async function fetchPolicies(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  const res = await apiFetch(`/policies?${qs}`);
-  let baseItems = res?.success ? [...(res.items || [])] : [...policyStore];
+  const res = await apiFetch('/policies?limit=100');
+  const rawItems = res?.success ? [...(res.items || [])] : [...policyStore];
+
+  // Deduplicate policies by IMEI (keep the earliest policy_no or latest purchase record per unique IMEI)
+  const byImei = new Map();
+  for (const p of rawItems) {
+    if (!p?.imei) continue;
+    const prev = byImei.get(p.imei);
+    if (!prev) {
+      byImei.set(p.imei, { ...p });
+    } else {
+      // Keep the most recent order/purchase data, or prefer the lower policy_no if same order
+      const isNewer = new Date(p.purchased_at || p.created_at || 0) >= new Date(prev.purchased_at || prev.created_at || 0);
+      if (isNewer && p.order_id !== prev.order_id) {
+        byImei.set(p.imei, { ...p });
+      }
+    }
+  }
+  let baseItems = Array.from(byImei.values()).sort(
+    (a, b) => new Date(b.purchased_at || b.created_at || 0) - new Date(a.purchased_at || a.created_at || 0)
+  );
 
   await Promise.all(
     baseItems.map(async (p) => {

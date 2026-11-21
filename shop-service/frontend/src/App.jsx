@@ -6,48 +6,89 @@ import AvailableStock from './components/AvailableStock';
 import SalesHistory   from './components/SalesHistory';
 import ClaimRequest   from './components/ClaimRequest';
 import Checkout       from './pages/Checkout';
+import { LangProvider, useLang, PhoneShopLogo, LanguageSwitcher } from './i18n';
 
 const NAV = [
   {
-    section: 'ภาพรวม',
+    sectionTh: 'ภาพรวมระบบ',
+    sectionEn: 'Overview',
     items: [
-      { id: 'dashboard',  label: 'Dashboard สต็อก' },
+      { id: 'dashboard', labelTh: 'สรุปภาพรวมคลังสินค้า', labelEn: 'Inventory Dashboard' },
     ],
   },
   {
-    section: 'จัดการสต็อก',
+    sectionTh: 'จัดการสต็อก',
+    sectionEn: 'Inventory Control',
     items: [
-      { id: 'receive',    label: 'รับเครื่องเข้าคลัง' },
-      { id: 'available',  label: 'สินค้าพร้อมขาย' },
+      { id: 'receive',   labelTh: 'รับเครื่องเข้าคลัง', labelEn: 'Receive Stock' },
+      { id: 'available', labelTh: 'สินค้าพร้อมขาย',     labelEn: 'Available Stock' },
     ],
   },
   {
-    section: 'ขาย & บริการหลังการขาย',
+    sectionTh: 'ขายและบริการหลังการขาย',
+    sectionEn: 'Sales & After-Sales',
     items: [
-      { id: 'checkout',      label: 'POS ขายหน้าร้าน' },
-      { id: 'sales-history', label: 'ประวัติการซื้อขาย' },
-      { id: 'claim-request', label: 'แจ้งเคลม / ส่งซ่อม' },
+      { id: 'checkout',      labelTh: 'ขายหน้าร้านและผูกประกัน', labelEn: 'Point of Sale (POS)' },
+      { id: 'sales-history', labelTh: 'ประวัติการซื้อขาย',      labelEn: 'Sales History' },
+      { id: 'claim-request', labelTh: 'แจ้งเคลมและส่งซ่อม',     labelEn: 'Warranty Claim & Repair' },
     ],
   },
   {
-    section: 'ค้นหา',
+    sectionTh: 'ค้นหาข้อมูล',
+    sectionEn: 'Search & Lookup',
     items: [
-      { id: 'imei-search', label: 'ค้นหา IMEI' },
+      { id: 'imei-search', labelTh: 'ค้นหาเลขประจำเครื่อง', labelEn: 'IMEI Lookup' },
     ],
   },
 ];
 
 const PAGE_TITLES = {
-  dashboard:       { title: 'Inventory Dashboard',        sub: 'ภาพรวมสต็อกโทรศัพท์ทั้งหมด' },
-  receive:         { title: 'รับเครื่องเข้าคลัง',         sub: 'สแกน IMEI เพื่อเพิ่มสต็อก' },
-  available:       { title: 'สินค้าพร้อมขาย',             sub: 'โทรศัพท์สถานะ IN_STOCK' },
-  checkout:        { title: 'POS Checkout & ผูกประกัน',   sub: 'คิดเงินและส่งข้อมูลออกใบรับประกันดิจิทัล' },
-  'sales-history': { title: 'ประวัติการซื้อขายหน้าร้าน',   sub: 'รายการบิลขาย ข้อมูลผู้ซื้อ และเลขกรมธรรม์ประกันภัย' },
-  'claim-request': { title: 'แจ้งเคลมประกัน & ส่งซ่อม',    sub: 'ตรวจสอบสิทธิ์ประกันและเปิดใบงานส่งศูนย์ซ่อม' },
-  'imei-search':   { title: 'ค้นหาประวัติ IMEI',          sub: 'ตรวจสอบสถานะและประวัติเครื่อง' },
+  dashboard: {
+    titleTh: 'สรุปภาพรวมคลังสินค้า',
+    subTh:   'ข้อมูลสถิติสต็อกโทรศัพท์มือถือและยอดขายทั้งหมดในระบบ',
+    titleEn: 'Inventory Dashboard',
+    subEn:   'Complete overview of smartphone stock levels and sales',
+  },
+  receive: {
+    titleTh: 'รับเครื่องเข้าคลังและจัดการรุ่นสินค้า',
+    subTh:   'สแกนเลขประจำเครื่องเพื่อเพิ่มสต็อกและจัดการรุ่นโทรศัพท์',
+    titleEn: 'Receive Stock & Model Catalog',
+    subEn:   'Scan device IMEIs to receive inventory and manage product models',
+  },
+  available: {
+    titleTh: 'รายการสินค้าพร้อมขาย',
+    subTh:   'โทรศัพท์มือถือในคลังที่พร้อมจำหน่ายหน้าร้าน',
+    titleEn: 'Available Stock',
+    subEn:   'In-stock smartphones ready for retail sale',
+  },
+  checkout: {
+    titleTh: 'ชำระเงินหน้าร้านและสมัครประกันภัย',
+    subTh:   'คิดเงิน เลือกแผนผ่อนชำระ และส่งข้อมูลออกใบรับประกันดิจิทัล',
+    titleEn: 'Point of Sale & Warranty Enrollment',
+    subEn:   'Process checkout, installment plans, and instant e-warranty registration',
+  },
+  'sales-history': {
+    titleTh: 'ประวัติการซื้อขายหน้าร้าน',
+    subTh:   'รายการใบเสร็จ ข้อมูลผู้ซื้อ และเลขกรมธรรม์ประกันภัย',
+    titleEn: 'Retail Sales History',
+    subEn:   'Sales orders, customer records, and linked insurance policies',
+  },
+  'claim-request': {
+    titleTh: 'แจ้งเคลมประกันและส่งซ่อม',
+    subTh:   'ตรวจสอบสิทธิ์ความคุ้มครองและเปิดใบงานส่งศูนย์บริการ',
+    titleEn: 'Warranty Claim & Repair Intake',
+    subEn:   'Verify policy coverage and submit repair tickets to partner centers',
+  },
+  'imei-search': {
+    titleTh: 'ค้นหาประวัติเลขประจำเครื่อง',
+    subTh:   'ตรวจสอบสถานะปัจจุบันและประวัติการเปลี่ยนสถานะย้อนหลัง',
+    titleEn: 'Device IMEI Lookup',
+    subEn:   'Inspect current device status and historical audit logs',
+  },
 };
 
-export default function App() {
+function AppShell() {
+  const { lang, t } = useLang();
   const [page, setPage] = useState('dashboard');
   const [claimImei, setClaimImei] = useState('');
   const pt = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
@@ -74,14 +115,15 @@ export default function App() {
     <div className="app-layout">
       {/* ── Sidebar ─────────────────────────────────────── */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h1>PhoneShop<br />Inventory</h1>
-          <span>IMEI Management System</span>
+        <div className="sidebar-logo" style={{ padding: '16px 12px 14px' }}>
+          <PhoneShopLogo />
         </div>
         <nav className="sidebar-nav">
           {NAV.map(section => (
-            <div key={section.section}>
-              <div className="nav-section-label">{section.section}</div>
+            <div key={section.sectionEn}>
+              <div className="nav-section-label">
+                {lang === 'th' ? section.sectionTh : section.sectionEn}
+              </div>
               {section.items.map(item => (
                 <button
                   key={item.id}
@@ -91,7 +133,7 @@ export default function App() {
                     setPage(item.id);
                   }}
                 >
-                  {item.label}
+                  {lang === 'th' ? item.labelTh : item.labelEn}
                 </button>
               ))}
             </div>
@@ -105,19 +147,24 @@ export default function App() {
           fontSize: '.72rem',
           color: 'var(--clr-text-subtle)',
         }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>v1.0.0</div>
-          <div>PhoneShop Management</div>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>
+            {t('รุ่นระบบ 1.0.0', 'Version 1.0.0')}
+          </div>
+          <div>
+            {t('ระบบบริหารจัดการร้านโทรศัพท์', 'PhoneShop Management')}
+          </div>
         </div>
       </aside>
 
       {/* ── Main Content ─────────────────────────────────── */}
       <main className="main-content">
         {/* Topbar */}
-        <div className="topbar">
+        <div className="topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <div>
-            <div className="topbar-title">{pt.title}</div>
-            <div className="topbar-subtitle">{pt.sub}</div>
+            <div className="topbar-title">{lang === 'th' ? pt.titleTh : pt.titleEn}</div>
+            <div className="topbar-subtitle">{lang === 'th' ? pt.subTh : pt.subEn}</div>
           </div>
+          <LanguageSwitcher />
         </div>
 
         {/* Page Body */}
@@ -126,5 +173,13 @@ export default function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LangProvider>
+      <AppShell />
+    </LangProvider>
   );
 }

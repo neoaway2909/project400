@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sidebar, Topbar, ToastContainer, useToast } from './components/Shared'
+import { Sidebar, Topbar, ToastContainer, useToast, InsLangProvider, useInsLang } from './components/Shared'
 import DashboardPage from './components/DashboardPage'
 import PoliciesPage from './components/PoliciesPage'
 import RepairsPage from './components/RepairsPage'
@@ -8,14 +8,15 @@ import PackagesPage from './components/PackagesPage'
 import './index.css'
 
 const PAGE_TITLES = {
-  dashboard: 'Dashboard ภาพรวม',
-  policies:  'รายการกรมธรรม์ทั้งหมด',
-  repairs:   'จัดการงานเคลม & สถานะการซ่อม',
-  verify:    'ตรวจสอบสิทธิ์ประกัน (IMEI Verify)',
-  packages:  'จัดการแพ็กเกจประกันภัย',
+  dashboard: { th: 'สรุปภาพรวมระบบประกันภัย',        en: 'Insurance Overview Dashboard' },
+  policies:  { th: 'รายการกรมธรรม์ทั้งหมด',          en: 'All Insurance Policies' },
+  repairs:   { th: 'จัดการงานเคลมและสถานะการซ่อม',    en: 'Claim & Repair Status Management' },
+  verify:    { th: 'ตรวจสอบสิทธิ์ความคุ้มครองประกันภัย', en: 'IMEI Coverage Verification' },
+  packages:  { th: 'จัดการแพ็กเกจประกันภัย',         en: 'Insurance Packages Management' },
 };
 
-function App() {
+function AppShell() {
+  const { lang } = useInsLang();
   const [page, setPage] = useState('dashboard');
   const { toasts, addToast } = useToast();
 
@@ -34,11 +35,19 @@ function App() {
     <div className="app-layout">
       <Sidebar activePage={page} onNavigate={setPage} />
       <div className="main-content">
-        <Topbar title={PAGE_TITLES[page]} />
+        <Topbar title={lang === 'th' ? PAGE_TITLES[page]?.th : PAGE_TITLES[page]?.en} />
         {renderPage()}
       </div>
       <ToastContainer toasts={toasts} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <InsLangProvider>
+      <AppShell />
+    </InsLangProvider>
   );
 }
 

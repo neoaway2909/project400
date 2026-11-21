@@ -292,10 +292,17 @@ export default function Checkout() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1fr', gap: '24px' }}>
-        {/* Device selection */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: '24px', alignItems: 'stretch' }}>
+        {/* Device selection (Stretches to match exact height of right checkout panel) */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--clr-surface)',
+          border: '1px solid var(--clr-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: '16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px', flexShrink: 0 }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--clr-primary-400)', margin: 0 }}>
               1. เลือกโทรศัพท์ในสต็อก ({visibleDevices.length} เครื่อง)
             </h3>
@@ -310,83 +317,96 @@ export default function Checkout() {
           </div>
 
           {stockLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--clr-text-muted)', flex: 1 }}>
               กำลังดึงรายการเครื่องพร้อมขายจากคลัง...
             </div>
           ) : visibleDevices.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--clr-text-muted)', background: 'var(--clr-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--clr-text-muted)', background: 'var(--clr-surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', flex: 1 }}>
               ไม่พบเครื่องพร้อมขายที่ตรงกับคำค้นหา
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '640px', overflowY: 'auto', paddingRight: '4px' }}>
-              {visibleDevices.map(d => {
-                const inCart = isImeiInCart(d.imei);
-                return (
-                  <div key={d.imei} style={{
-                    background: 'var(--clr-surface)',
-                    border: inCart ? '2px solid var(--clr-success-500)' : '1px solid var(--clr-border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '16px',
-                    opacity: inCart ? 0.65 : 1,
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                      <strong style={{ fontSize: '1rem', color: 'var(--clr-text)' }}>
-                        {d.model_name}
-                      </strong>
-                      <span style={{ color: 'var(--clr-primary-500)', fontWeight: 800, fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
-                        ฿{d.price.toLocaleString()}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 12px' }}>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--clr-text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                        IMEI: <strong>{d.imei}</strong>
-                      </span>
-                      {inCart && (
-                        <span className="badge in-stock" style={{ fontSize: '0.72rem' }}>
-                          ✓ อยู่ในตะกร้าแล้ว
+            <div style={{ position: 'relative', flex: 1, minHeight: '620px' }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                paddingRight: '6px',
+              }}>
+                {visibleDevices.map(d => {
+                  const inCart = isImeiInCart(d.imei);
+                  return (
+                    <div key={d.imei} style={{
+                      background: 'var(--clr-surface-2)',
+                      border: inCart ? '2px solid var(--clr-success-500)' : '1px solid var(--clr-border)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '16px',
+                      opacity: inCart ? 0.65 : 1,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                        <strong style={{ fontSize: '1rem', color: 'var(--clr-text)' }}>
+                          {d.model_name}
+                        </strong>
+                        <span style={{ color: 'var(--clr-primary-500)', fontWeight: 800, fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
+                          ฿{d.price.toLocaleString()}
                         </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      <button
-                        disabled={inCart}
-                        onClick={() => addToCart(d, null)}
-                        style={{
-                          padding: '6px 12px',
-                          background: 'var(--clr-surface-2)',
-                          border: '1px solid var(--clr-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--clr-text-muted)',
-                          cursor: inCart ? 'not-allowed' : 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                        }}
-                      >
-                        เครื่องเปล่า (ไม่รับประกัน)
-                      </button>
-                      {WARRANTY_OPTIONS.map(w => (
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 12px' }}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--clr-text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                          IMEI: <strong>{d.imei}</strong>
+                        </span>
+                        {inCart && (
+                          <span className="badge in-stock" style={{ fontSize: '0.72rem' }}>
+                            ✓ อยู่ในตะกร้าแล้ว
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         <button
-                          key={w.code}
                           disabled={inCart}
-                          onClick={() => addToCart(d, w)}
+                          onClick={() => addToCart(d, null)}
                           style={{
                             padding: '6px 12px',
-                            background: 'rgba(245, 158, 11, 0.12)',
-                            border: '1px solid var(--clr-primary-500)',
+                            background: '#ffffff',
+                            border: '1px solid var(--clr-border)',
                             borderRadius: 'var(--radius-sm)',
-                            color: 'var(--clr-primary-400)',
+                            color: 'var(--clr-text-muted)',
                             cursor: inCart ? 'not-allowed' : 'pointer',
                             fontSize: '0.8rem',
                             fontWeight: 600,
                           }}
                         >
-                          + {w.name} (฿{w.price.toLocaleString()})
+                          เครื่องเปล่า (ไม่รับประกัน)
                         </button>
-                      ))}
+                        {WARRANTY_OPTIONS.map(w => (
+                          <button
+                            key={w.code}
+                            disabled={inCart}
+                            onClick={() => addToCart(d, w)}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              border: '1px solid var(--clr-primary-500)',
+                              borderRadius: 'var(--radius-sm)',
+                              color: 'var(--clr-primary-400)',
+                              cursor: inCart ? 'not-allowed' : 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            + {w.name} (฿{w.price.toLocaleString()})
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
