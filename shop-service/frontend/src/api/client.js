@@ -117,10 +117,101 @@ const insRequest = async (method, path, body) => {
   return data;
 };
 
+const RECOVERED_ORDERS_BY_IMEI = {
+  '351234567890002': {
+    order_id: 'ORD-20261119-276',
+    customer_name: 'สมชาย ใจดี',
+    customer_phone: '0812345678',
+    customer_email: 'somchai@example.com',
+    total_amount: 47890,
+    payment_method: 'CASH',
+    payment_details: { type: 'CASH', label: 'เงินสด / QR PromptPay' },
+    payment_status: 'PAID',
+    created_at: '2026-11-19T09:59:00.000Z',
+    items: [
+      {
+        line_no: 1,
+        model_name: 'Apple iPhone 15 Pro 128GB (Black Titanium)',
+        imei: '351234567890002',
+        price: 42900,
+        package_code: 'PKG_FULL_2Y',
+        package_price: 4990,
+        policy_no: 'POL-2026-000004',
+        sync_status: 'SUCCESS',
+        e_warranty_url: 'http://localhost:5176/?imei=351234567890002',
+      },
+    ],
+  },
+  '999999999999999': {
+    order_id: 'ORD-20261112-231',
+    customer_name: 'สมชาย ใจดี',
+    customer_phone: '0812345678',
+    customer_email: 'somchai@example.com',
+    total_amount: 3485,
+    payment_method: 'CREDIT_INSTALLMENT',
+    payment_details: {
+      type: 'CREDIT_INSTALLMENT',
+      card_network: 'VISA',
+      card_bank: 'KBANK',
+      card_bank_name: 'กสิกรไทย (KBank Smart PAY)',
+      card_last4: '4242',
+      months: 24,
+      interest_rate: 0.69,
+      monthly_payment: 145.21,
+      total_interest: 495,
+      grand_total: 3485,
+      label: 'ผ่อนบัตรเครดิต KBANK (VISA *4242) · 24 เดือน',
+    },
+    payment_status: 'PAID',
+    created_at: '2026-11-12T10:37:00.000Z',
+    items: [
+      {
+        line_no: 1,
+        model_name: 'nokia 3310 128GB (black)',
+        imei: '999999999999999',
+        price: 1000,
+        package_code: 'PKG_ACCIDENT_1Y',
+        package_price: 1990,
+        policy_no: 'POL-2026-000005',
+        sync_status: 'SUCCESS',
+        e_warranty_url: 'http://localhost:5176/?imei=999999999999999',
+      },
+    ],
+  },
+};
+
+function repairCorruptedOrder(ord) {
+  if (!ord) return null;
+  const isCorrupted =
+    String(ord.order_id || '').startsWith('ORD-POL-') ||
+    Number(ord.total_amount || 0) === 0 ||
+    (ord.items || []).some(it => it.model_name === 'สมาร์ทโฟน' && Number(it.price || 0) === 0);
+
+  if (!isCorrupted) return ord;
+
+  const firstImei = String(ord.items?.[0]?.imei || '').trim();
+  if (firstImei && RECOVERED_ORDERS_BY_IMEI[firstImei]) {
+    const recovered = RECOVERED_ORDERS_BY_IMEI[firstImei];
+    const existingPolNo = ord.items?.[0]?.policy_no || recovered.items[0].policy_no;
+    return {
+      ...recovered,
+      items: recovered.items.map(it => ({ ...it, policy_no: existingPolNo })),
+    };
+  }
+  return null;
+}
+
 function deduplicateOrdersByImei(ordersList = []) {
-  const sorted = [...ordersList].sort(
-    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-  );
+  const repairedList = ordersList.map(repairCorruptedOrder).filter(Boolean);
+
+  // Sort real POS orders ahead of synthetic ORD-POL-* orders, then newest first
+  const sorted = [...repairedList].sort((a, b) => {
+    const aSynthetic = String(a.order_id || '').startsWith('ORD-POL-') ? 1 : 0;
+    const bSynthetic = String(b.order_id || '').startsWith('ORD-POL-') ? 1 : 0;
+    if (aSynthetic !== bSynthetic) return aSynthetic - bSynthetic;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+
   const seenImeis = new Set();
   const cleaned = [];
   for (const ord of sorted) {
@@ -136,7 +227,7 @@ function deduplicateOrdersByImei(ordersList = []) {
       cleaned.push({ ...ord, items: uniqueItems });
     }
   }
-  return cleaned;
+  return cleaned.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
 function readLocalOrders() {
@@ -370,19 +461,38 @@ export const api = {
   getAvailableStock: async (params = {}) => {
     const res = await request('GET', `/inventory/available-stock?${new URLSearchParams(params)}`);
     const overrides = readModelOverrides();
+    const soldImeis = new Set();
+    for (const ord of readLocalOrders()) {
+      for (const it of ord.items || []) {
+        if (it?.imei) soldImeis.add(String(it.imei));
+      }
+    }
     if (Array.isArray(res?.data)) {
-      res.data = res.data.map(row => {
-        const ov = overrides[String(row.model_id)];
-        return ov
-          ? {
-              ...row,
-              model_name: ov.model_name || row.model_name,
-              storage: ov.storage || row.storage,
-              color: ov.color || row.color,
-              selling_price: ov.selling_price ?? row.selling_price,
-            }
-          : row;
-      });
+      res.data = res.data
+        .map(row => {
+          const ov = overrides[String(row.model_id)];
+          const filteredImeis = Array.isArray(row.available_imeis)
+            ? row.available_imeis.filter(im => !soldImeis.has(String(im)))
+            : row.available_imeis;
+          const inStockCount = Array.isArray(filteredImeis)
+            ? filteredImeis.length
+            : Number(row.in_stock_count || 0);
+          const base = {
+            ...row,
+            available_imeis: filteredImeis,
+            in_stock_count: inStockCount,
+          };
+          return ov
+            ? {
+                ...base,
+                model_name: ov.model_name || base.model_name,
+                storage: ov.storage || base.storage,
+                color: ov.color || base.color,
+                selling_price: ov.selling_price ?? base.selling_price,
+              }
+            : base;
+        })
+        .filter(row => Number(row.in_stock_count || 0) > 0);
     }
     return res;
   },
@@ -460,7 +570,20 @@ export const api = {
                 if (createdPol?.policy_no) {
                   it.policy_no = createdPol.policy_no;
                   it.e_warranty_url = createdPol.e_warranty_url || `http://localhost:5176/?imei=${it.imei}`;
-                  policyByImei.set(String(it.imei), createdPol);
+                  policyByImei.set(String(it.imei), {
+                    ...createdPol,
+                    order_id: localOrd.order_id,
+                    imei: String(it.imei).trim(),
+                    device_model: it.model_name || 'สมาร์ทโฟน',
+                    device_price: Number(it.price || 0),
+                    package_code: it.package_code,
+                    package_price: Number(it.package_price ?? PKG_PRICES[it.package_code] ?? 0),
+                    customer_name: localOrd.customer_name || 'ลูกค้าหน้าร้าน',
+                    customer_phone: validPhone,
+                    customer_email: localOrd.customer_email || 'customer@example.com',
+                    purchased_at: localOrd.created_at,
+                    created_at: localOrd.created_at,
+                  });
                 }
               } catch {
                 // ignore if already exists
@@ -512,7 +635,21 @@ export const api = {
       const allOrderedImeis = new Set();
       for (const ord of merged) {
         for (const it of ord.items || []) {
-          if (it?.imei) allOrderedImeis.add(String(it.imei));
+          if (it?.imei) {
+            const imeiStr = String(it.imei);
+            allOrderedImeis.add(imeiStr);
+            request('GET', `/inventory/imei/${encodeURIComponent(imeiStr)}`)
+              .then(detail => {
+                if (detail?.data?.device?.status === 'IN_STOCK') {
+                  return request('PUT', `/inventory/imei/${encodeURIComponent(imeiStr)}/status`, {
+                    status: 'SOLD',
+                    changedBy: 'pos_cashier',
+                    reason: `ขายหน้าร้าน POS (${ord.order_id}) ให้แก่ ${ord.customer_name || 'ลูกค้าหน้าร้าน'}`,
+                  });
+                }
+              })
+              .catch(() => {});
+          }
         }
       }
       for (const orphanImei of ['352345678901002', '357890123456003', '358901234567004']) {

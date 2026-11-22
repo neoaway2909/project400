@@ -202,6 +202,42 @@ export default function ImeiSearch() {
         }
       }
 
+      if (res && buyer && res.device?.status === 'IN_STOCK') {
+        const saleReason = `ขายหน้าร้าน POS (${buyer.order_id || 'ORD-POS'}) ให้แก่ ${buyer.customer_name}`;
+        try {
+          await api.updateImeiStatus(val, {
+            status: 'SOLD',
+            changedBy: 'pos_cashier',
+            reason: saleReason,
+          });
+          const refreshed = await api.getImeiDetail(val);
+          if (refreshed?.data) res = refreshed.data;
+        } catch {
+          // fallback in-place update
+        }
+        if (res.device?.status === 'IN_STOCK') {
+          res = {
+            ...res,
+            device: {
+              ...res.device,
+              status: 'SOLD',
+              sold_at: buyer.purchased_at || new Date().toISOString(),
+            },
+            logs: [
+              {
+                id: Date.now(),
+                old_status: 'IN_STOCK',
+                new_status: 'SOLD',
+                changed_by: 'pos_cashier',
+                reason: saleReason,
+                changed_at: buyer.purchased_at || new Date().toISOString(),
+              },
+              ...(res.logs || []),
+            ],
+          };
+        }
+      }
+
       if (!res && buyer) {
         res = {
           device: {

@@ -45,7 +45,7 @@ const stockLots = [
 const deviceImeis = [
   // iPhone 15 Pro 128GB Black (model_id=1)
   { imei: '351234567890001', model_id: 1, lot_id: 1, status: 'IN_STOCK',     purchase_price: 38000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
-  { imei: '351234567890002', model_id: 1, lot_id: 1, status: 'IN_STOCK',     purchase_price: 38000, received_at: '2025-01-10T09:00:00Z', sold_at: null },
+  { imei: '351234567890002', model_id: 1, lot_id: 1, status: 'SOLD',         purchase_price: 38000, received_at: '2025-01-10T09:00:00Z', sold_at: '2026-11-19T09:59:00Z' },
   { imei: '351234567890003', model_id: 1, lot_id: 1, status: 'SOLD',         purchase_price: 38000, received_at: '2025-01-10T09:00:00Z', sold_at: '2026-10-18T14:00:00Z' },
   { imei: '351234567890004', model_id: 1, lot_id: 3, status: 'IN_STOCK',     purchase_price: 38000, received_at: '2025-03-01T09:00:00Z', sold_at: null },
   { imei: '351234567890005', model_id: 1, lot_id: 3, status: 'IN_STOCK',     purchase_price: 38000, received_at: '2025-03-01T09:00:00Z', sold_at: null },

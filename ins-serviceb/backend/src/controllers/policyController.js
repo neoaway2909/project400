@@ -31,13 +31,7 @@ router.post('/', validate(createPolicySchema), async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      policy_no: policy.policy_no,
-      imei: policy.imei,
-      status: policy.status,
-      coverage_start: policy.coverage_start,
-      coverage_end: policy.coverage_end,
-      max_coverage_amount: policy.max_coverage_amount,
-      e_warranty_url: policy.e_warranty_url,
+      ...policy,
       message: 'สร้างกรมธรรม์สำเร็จ',
       timestamp: new Date().toISOString()
     });
